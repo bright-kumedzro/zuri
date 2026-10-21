@@ -1,9 +1,9 @@
 /**
- * Dev contact sheet: /lab.html?seeds=a,b,c&cols=4&size=320&framing=bust&post=sheet.jpg
+ * Dev contact sheet: /lab.html?seeds=a,b,c&cols=4&size=320&framing=bust&post=sheet.jpg (add &style=flat for 2D)
  * Builds every seed on the worker pool, tiles the renders, and optionally POSTs the sheet to :5199.
  */
 
-import { AvatarFactory, disposeAvatar, generateAvatar, snapshotAvatar, type AvatarOptions, type Framing } from "@zuri/avatar";
+import { AvatarFactory, createFlatAvatar, disposeAvatar, flatAvatarDataURL, generateAvatar, snapshotAvatar, type AvatarOptions, type Framing } from "@zuri/avatar";
 
 const q = new URLSearchParams(location.search);
 const seeds = (q.get("seeds") ?? "ada,kwame,amara,lin,sofia,tunde,maya,obi").split(",");
@@ -28,16 +28,20 @@ const factory = new AvatarFactory();
 const t0 = performance.now();
 await Promise.all(
   seeds.map(async (seed, i) => {
-    const avatar = await factory.create(seed, { ...opts, quality });
     const img = new Image();
-    img.src = snapshotAvatar(avatar, { size, framing });
-    // ?export=dir also saves each render as dir/<seed>.webp through the receiver.
-    const dir = q.get("export");
-    if (dir) {
-      const webp = snapshotAvatar(avatar, { size, framing, type: "image/webp", quality: 0.86, transparent: q.has("transparent") });
-      await fetch(`http://localhost:5199/?name=${encodeURIComponent(`${dir}/${seed}.webp`)}`, { method: "POST", body: webp });
+    if (q.get("style") === "flat") {
+      img.src = flatAvatarDataURL(createFlatAvatar(seed, { ...opts, size }));
+    } else {
+      const avatar = await factory.create(seed, { ...opts, quality });
+      img.src = snapshotAvatar(avatar, { size, framing });
+      // ?export=dir also saves each render as dir/<seed>.webp through the receiver.
+      const dir = q.get("export");
+      if (dir) {
+        const webp = snapshotAvatar(avatar, { size, framing, type: "image/webp", quality: 0.86, transparent: q.has("transparent") });
+        await fetch(`http://localhost:5199/?name=${encodeURIComponent(`${dir}/${seed}.webp`)}`, { method: "POST", body: webp });
+      }
+      disposeAvatar(avatar);
     }
-    disposeAvatar(avatar);
     await img.decode();
     const x = (i % cols) * size, y = Math.floor(i / cols) * size;
     ctx.drawImage(img, x, y);

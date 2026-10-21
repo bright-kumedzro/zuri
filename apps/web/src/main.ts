@@ -7,7 +7,10 @@ import {
   HAIR_STYLE_LIST,
   OUTFIT_LIST,
   SKIN_TONES,
+  createFlatAvatar,
   disposeAvatar,
+  flatAvatarSVG,
+  rasterizeSVG,
   generateAvatar,
   snapshotAvatar,
   type Avatar,
@@ -153,6 +156,8 @@ function setHeroSeed(value: string, from?: HTMLInputElement) {
   renderCode();
   clearTimeout(heroTimer);
   heroTimer = window.setTimeout(() => hero.show(generateAvatar(heroSeed)), 300);
+  $("#style-flat").innerHTML = createFlatAvatar(heroSeed, { size: 512 });
+  $("#style-3d").parentElement!.style.background = generateAvatar(heroSeed).background;
 }
 heroInput.addEventListener("input", () => setHeroSeed(heroInput.value, heroInput));
 playInput.addEventListener("input", () => setHeroSeed(playInput.value, playInput));
@@ -204,27 +209,49 @@ $("#hair-row").addEventListener("click", (e) => {
   openBuilder({ seed: a.dataset.seed!, hair: a.dataset.hair as AvatarOptions["hair"] });
 });
 
+// --- Styles -------------------------------------------------------------------------------------
+
+for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-look]")) {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    openBuilder({ seed: heroSeed, look: a.dataset.look ? "flat" : undefined });
+  });
+}
+
 // --- Builder --------------------------------------------------------------------------------------
 
 interface BuilderState extends AvatarOptions {
   seed: string;
   transparent?: boolean;
+  /** Undefined is 3D. */
+  look?: "flat";
 }
 let state: BuilderState = { seed: "kwame" };
 const builderSeed = $<HTMLInputElement>("#builder-seed");
+const builderFlat = $("#builder-flat");
+const builderCanvas = $<HTMLCanvasElement>("#builder-canvas");
+const dlAlt = $("#dl-glb");
 
 function builderParams(): AvatarParams {
-  const { seed, transparent: _, ...options } = state;
+  const { seed, transparent: _, look: __, ...options } = state;
   return generateAvatar(seed || "zuri", options);
 }
+
+const flatSVG = (size = 512) => flatAvatarSVG(builderParams(), { size, transparent: state.transparent });
 
 let builderTimer = 0;
 function updateBuilder(immediate = false) {
   const params = builderParams();
+  const flat = state.look === "flat";
   builder.tile.style.background = state.transparent ? "" : params.background;
   builder.tile.classList.toggle("clear", !!state.transparent);
+  builderFlat.hidden = !flat;
+  builderCanvas.hidden = flat;
+  dlAlt.dataset.i18n = flat ? "builder.svg" : "builder.glb";
+  dlAlt.textContent = t(dlAlt.dataset.i18n as Key);
   clearTimeout(builderTimer);
-  builderTimer = window.setTimeout(() => builder.show(params), immediate ? 0 : 250);
+  if (flat) builderFlat.innerHTML = flatSVG();
+  else builderTimer = window.setTimeout(() => builder.show(params), immediate ? 0 : 250);
   syncControls();
 }
 
@@ -326,6 +353,7 @@ function swatches(labelKey: Key, items: () => { value: string | undefined; color
 function buildControls() {
   const root = $("#controls");
   for (const c of controls.splice(0)) c.el.remove();
+  segmented("builder.look", "look", () => [{ value: undefined, label: t("opt.3d") }, { value: "flat", label: t("opt.flat") }], true);
   segmented("builder.style", "presentation", () => [auto(), { value: "feminine", label: t("opt.feminine") }, { value: "masculine", label: t("opt.masculine") }]);
   segmented("builder.glasses", "glasses", () => [auto(), { value: "none", label: t("opt.none") }, { value: "round", label: t("opt.round") }, { value: "square", label: t("opt.square") }]);
   swatches(
@@ -358,7 +386,7 @@ function buildControls() {
   reset.className = "field wide";
   reset.innerHTML = `<div><button type="button" class="tertiary sm">${t("builder.reset")}</button></div>`;
   reset.querySelector("button")!.addEventListener("click", () => {
-    state = { seed: state.seed };
+    state = { seed: state.seed, look: state.look };
     updateBuilder();
   });
   controls.push({ el: reset, sync: () => {} });
@@ -370,8 +398,14 @@ function syncControls() {
 }
 
 function builderCode(): string {
-  const { seed, transparent, ...options } = state;
+  const { seed, transparent, look, ...options } = state;
   const opts = Object.entries(options).filter(([, v]) => v !== undefined);
+  if (look === "flat") {
+    const all = [...opts, ["size", 512], ...(transparent ? [["transparent", true]] : [])];
+    return `import { createFlatAvatar } from "@zuri/avatar/flat";
+
+const svg = createFlatAvatar(${JSON.stringify(seed)}, { ${all.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")} });`;
+  }
   const args = opts.length ? `, { ${opts.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")} }` : "";
   return `import { AvatarFactory, snapshotAvatar } from "@zuri/avatar";
 
@@ -379,11 +413,17 @@ const avatar = await new AvatarFactory().create(${JSON.stringify(seed)}${args});
 const png = snapshotAvatar(avatar, { size: 512${transparent ? ", transparent: true" : ""} });`;
 }
 
-$("#dl-png").addEventListener("click", () => {
-  const url = builder.snapshot(1024, !!state.transparent);
+$("#dl-png").addEventListener("click", async () => {
+  const url = state.look === "flat" ? await rasterizeSVG(flatSVG(1024), { size: 1024 }) : builder.snapshot(1024, !!state.transparent);
   if (url) download(url, `${slug(state.seed)}.png`);
 });
-$("#dl-glb").addEventListener("click", async () => {
+dlAlt.addEventListener("click", async () => {
+  if (state.look === "flat") {
+    const url = URL.createObjectURL(new Blob([flatSVG()], { type: "image/svg+xml" }));
+    download(url, `${slug(state.seed)}.svg`);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return;
+  }
   const a = builder.stage.avatar;
   if (!a) return;
   const rotation = a.rotation.clone();
@@ -471,6 +511,8 @@ $("#copy-snippet").addEventListener("click", (e) => copy(code.textContent ?? "",
 function updatePreviews(avatar: Avatar) {
   const src = hero.snapshot(128, true) ?? snapshotAvatar(avatar, { size: 128, transparent: true });
   for (const img of document.querySelectorAll<HTMLImageElement>("[data-avatar]")) img.src = src;
+  const style3d = $<HTMLImageElement>("#style-3d");
+  style3d.src = hero.snapshot(512, true) ?? style3d.src;
   const name = heroSeed.split("@")[0]!;
   for (const el of document.querySelectorAll("[data-name]")) el.textContent = name.charAt(0).toUpperCase() + name.slice(1);
 }

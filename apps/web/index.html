@@ -22,7 +22,7 @@
         <a class="brand" href="#"><img src="/avatars/amara.webp" alt="" /><span>zuri</span></a>
         <div class="links">
           <a href="#builder" data-i18n="nav.builder">Builder</a>
-          <a href="#playground" data-i18n="nav.docs">Docs</a>
+          <a href="/docs.html" data-i18n="nav.docs">Docs</a>
           <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
           <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
         </div>
@@ -131,6 +131,31 @@ scene.add(avatar);</code></pre>
           </div>
         </section>
 
+        <!-- Styles -->
+        <section class="section" id="styles">
+          <h2 data-i18n="styles.label">Styles</h2>
+          <p class="blurb"><span data-i18n="styles.title"></span> <span class="muted" data-i18n="styles.lede"></span></p>
+          <div class="style-grid">
+            <article class="style-card">
+              <div class="style-art"><img id="style-3d" src="/avatars/amara.webp" alt="" /></div>
+              <h3 data-i18n="styles.3d.title">3D</h3>
+              <p data-i18n="styles.3d.desc"></p>
+              <a class="secondary sm" href="#builder" data-look="" data-i18n="styles.try"></a>
+            </article>
+            <article class="style-card">
+              <div class="style-art" id="style-flat"></div>
+              <h3 data-i18n="styles.flat.title">Flat</h3>
+              <p data-i18n="styles.flat.desc"></p>
+              <a class="secondary sm" href="#builder" data-look="flat" data-i18n="styles.try"></a>
+            </article>
+            <article class="style-card soon">
+              <div class="style-art soon-art" aria-hidden="true"><span>Toon 3D</span><span>Full body</span><span>Realistic</span></div>
+              <h3 data-i18n="styles.next.title">Coming next</h3>
+              <p data-i18n="styles.next.desc"></p>
+            </article>
+          </div>
+        </section>
+
         <!-- Builder -->
         <section class="section" id="builder">
           <h2 data-i18n="builder.label">Builder</h2>
@@ -139,6 +164,7 @@ scene.add(avatar);</code></pre>
             <div class="builder-preview">
               <div class="stage-tile" id="builder-tile">
                 <canvas id="builder-canvas" aria-label="Your avatar. Drag to rotate."></canvas>
+                <div class="flat-view" id="builder-flat" role="img" aria-label="Your avatar" hidden></div>
                 <div class="spinner" id="builder-loading"></div>
               </div>
               <div class="builder-actions">
@@ -179,6 +205,7 @@ scene.add(avatar);</code></pre>
               <div class="pv team"><div class="stack" id="stack"></div><small data-i18n="play.team"></small></div>
             </div>
           </div>
+          <a class="secondary docs-link" href="/docs.html" data-i18n="play.docs">Read the full docs →</a>
         </section>
 
         <!-- Pricing -->
@@ -243,7 +270,7 @@ scene.add(avatar);</code></pre>
           <p class="muted" data-i18n="final.lede"></p>
           <div class="final-ctas">
             <a class="primary" href="#builder" data-i18n="final.cta"></a>
-            <a class="secondary" href="#playground" data-i18n="final.dev"></a>
+            <a class="secondary" href="/docs.html#install" data-i18n="final.dev"></a>
           </div>
         </section>
       </main>
@@ -251,7 +278,7 @@ scene.add(avatar);</code></pre>
       <footer class="bottom">
         <div>zuri · <span data-i18n="footer.tag"></span></div>
         <div class="foot-links">
-          <a href="#playground" data-i18n="nav.docs"></a>
+          <a href="/docs.html" data-i18n="nav.docs"></a>
           <a href="#pricing" data-i18n="nav.pricing"></a>
           <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
           <a href="mailto:hello@zuri.dev" data-i18n="footer.contact"></a>

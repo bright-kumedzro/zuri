@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docs · Zuri</title>
+    <meta name="description" content="How to install and use @zuri/avatar: create deterministic 3D avatars, render PNGs, export .glb files and customise every trait." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <link rel="icon" href="/avatars/amara.webp" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/docs.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="container">
+      <nav class="top" aria-label="Main">
+        <a class="brand" href="/"><img src="/avatars/amara.webp" alt="" /><span>zuri</span></a>
+        <div class="links">
+          <a href="/#builder">Builder</a>
+          <a href="/docs.html" aria-current="page">Docs</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+        <div class="nav-right">
+          <a class="primary sm" href="/#builder">Make your avatar</a>
+        </div>
+      </nav>
+
+      <div class="docs">
+        <aside class="toc" aria-label="On this page">
+          <p>Getting started</p>
+          <a href="#overview">Overview</a>
+          <a href="#install">Install</a>
+          <a href="#quick-start">Quick start</a>
+          <p>Guides</p>
+          <a href="#live">Live 3D on a page</a>
+          <a href="#images">Images (PNG, WebP)</a>
+          <a href="#threejs">In a three.js scene</a>
+          <a href="#customise">Customising traits</a>
+          <a href="#glb">Exporting .glb</a>
+          <a href="#flat">Flat 2D avatars</a>
+          <a href="#frameworks">React, Vue and others</a>
+          <a href="#performance">Performance</a>
+          <p>Reference</p>
+          <a href="#api-create">createAvatar</a>
+          <a href="#api-factory">AvatarFactory</a>
+          <a href="#api-stage">AvatarStage</a>
+          <a href="#api-snapshot">snapshotAvatar</a>
+          <a href="#api-render">renderAvatarImage</a>
+          <a href="#api-generate">generateAvatar</a>
+          <a href="#api-options">AvatarOptions</a>
+          <a href="#api-avatar">The Avatar object</a>
+          <a href="#api-flat">createFlatAvatar</a>
+          <a href="#api-constants">Constants</a>
+          <p>More</p>
+          <a href="#determinism">Determinism</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#api-hosted">Hosted API</a>
+          <a href="#troubleshooting">Troubleshooting</a>
+        </aside>
+
+        <main id="main" class="doc-body">
+          <section id="overview">
+            <h2>Docs</h2>
+            <h1 class="doc-title">Using Zuri</h1>
+            <p class="lead">
+              <code>@zuri/avatar</code> turns any string (a user ID, an email, a name) into a unique 3D avatar. The same
+              string always gives the same face, so there is nothing to upload, store or sync. Everything is generated
+              from code in the browser with <a href="https://threejs.org" target="_blank" rel="noreferrer">three.js</a>.
+            </p>
+            <p>There are two styles, and the same seed gives the same person in both:</p>
+            <ul>
+              <li><b>3D</b>: live in a canvas (it blinks, sways and can be rotated), as a PNG/WebP/JPEG image, or as a <code>.glb</code> model for Blender, Unity and AR.</li>
+              <li><b>Flat 2D</b>: a vector illustration as a small SVG string. It needs no WebGL, so it also works on servers, in emails and in native apps. See <a href="#flat">Flat 2D avatars</a>.</li>
+            </ul>
+            <p>Toon 3D, full-body characters and realistic digital humans are planned.</p>
+            <p class="note">Not a developer? Use the <a href="/#builder">builder</a> to design a face and download it as a PNG or .glb, no code needed.</p>
+          </section>
+
+          <section id="install">
+            <h3>Install</h3>
+            <p>Install the package and its peer dependency, three.js (version 0.170 or newer):</p>
+            <pre><code>npm i @zuri/avatar three</code></pre>
+            <p>
+              The package ships ES modules and uses Web Workers, so use a bundler that understands
+              <code>new Worker(new URL(..., import.meta.url))</code>. Vite, webpack 5, Rollup, esbuild, Parcel and
+              Next.js all do.
+            </p>
+          </section>
+
+          <section id="quick-start">
+            <h3>Quick start</h3>
+            <p>Show a live avatar in a canvas:</p>
+            <pre><code>&lt;canvas id="avatar" width="256" height="256"&gt;&lt;/canvas&gt;
+
+&lt;script type="module"&gt;
+  <span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+  <span class="k">const</span> stage = <span class="k">new</span> AvatarStage({ canvas: document.getElementById(<span class="s">"avatar"</span>), transparent: <span class="k">true</span> });
+  stage.setSize(<span class="s">256</span>, <span class="s">256</span>);
+  stage.show(<span class="k">await new</span> AvatarFactory().create(<span class="s">"ada@example.com"</span>));
+  stage.render();
+&lt;/script&gt;</code></pre>
+            <p>Or get an image you can put in any <code>&lt;img&gt;</code>:</p>
+            <pre><code><span class="k">import</span> { AvatarFactory, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
+<span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id);
+img.src = snapshotAvatar(avatar, { size: <span class="s">256</span> });</code></pre>
+          </section>
+
+          <section id="live">
+            <h3>Live 3D on a page</h3>
+            <p>
+              <code>AvatarStage</code> is a ready-lit scene with a camera that frames the avatar. Give it a canvas, size
+              it, show an avatar and call <code>render</code> every frame to animate the idle blinks and sway.
+            </p>
+            <pre><code><span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> canvas = document.querySelector(<span class="s">"canvas"</span>);
+<span class="k">const</span> stage = <span class="k">new</span> AvatarStage({ canvas, transparent: <span class="k">true</span> });
+stage.setSize(canvas.clientWidth, canvas.clientHeight);
+stage.frame(<span class="s">"head"</span>);                          <span class="c">// or "bust" (default)</span>
+stage.show(<span class="k">await new</span> AvatarFactory().create(<span class="s">"kwame"</span>));
+
+<span class="k">function</span> loop(ms) {
+  stage.render(ms / <span class="s">1000</span>);                     <span class="c">// time in seconds drives blinks and sway</span>
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);</code></pre>
+            <p>
+              Calling <code>show</code> again swaps in a new avatar and frees the old one. Call
+              <code>setSize</code> whenever the canvas changes size (a <code>ResizeObserver</code> works well), and
+              <code>stage.dispose()</code> when you remove the canvas.
+            </p>
+            <p>
+              To let people rotate the avatar, change <code>stage.avatar.rotation.y</code> from pointer events. The
+              avatar is a normal <code>THREE.Group</code>.
+            </p>
+          </section>
+
+          <section id="images">
+            <h3>Images (PNG, WebP)</h3>
+            <p>
+              <code>snapshotAvatar</code> renders an avatar facing forward with its eyes open and returns a data URL.
+              All snapshots share one offscreen renderer, so taking many is cheap.
+            </p>
+            <pre><code><span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
+
+<span class="k">async function</span> avatarUrl(seed, size = <span class="s">96</span>) {
+  <span class="k">const</span> avatar = <span class="k">await</span> zuri.create(seed, { quality: <span class="s">0.75</span> });
+  <span class="k">const</span> url = snapshotAvatar(avatar, { size, type: <span class="s">"image/webp"</span>, quality: <span class="s">0.9</span> });
+  disposeAvatar(avatar);                       <span class="c">// free GPU memory once you have the image</span>
+  <span class="k">return</span> url;
+}</code></pre>
+            <p>
+              Render at twice the displayed size for sharp images on high-density screens (a 48&nbsp;px avatar needs
+              <code>size: 96</code>). Pass <code>transparent: true</code> to drop the coloured background.
+            </p>
+            <p>
+              To save a file, turn the data URL into a download link, or <code>fetch(url).then(r =&gt; r.blob())</code>
+              to upload it.
+            </p>
+          </section>
+
+          <section id="threejs">
+            <h3>In a three.js scene</h3>
+            <p>
+              If you already have a scene, add the avatar to it like any other object. It is about 3.5 units tall from
+              shoulders to hair, with the head near the origin, facing +Z. Your scene needs lights; <code>MeshPhysicalMaterial</code> looks best
+              with an environment map.
+            </p>
+            <pre><code><span class="k">import</span> { AvatarFactory } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> avatar = <span class="k">await new</span> AvatarFactory().create(<span class="s">"ada"</span>);
+avatar.position.set(<span class="s">0</span>, <span class="s">1.5</span>, <span class="s">0</span>);
+scene.add(avatar);
+
+renderer.setAnimationLoop((ms) =&gt; {
+  avatar.userData.tick(ms / <span class="s">1000</span>);           <span class="c">// idle blinking + sway</span>
+  renderer.render(scene, camera);
+});</code></pre>
+            <p>When you remove it, call <code>disposeAvatar(avatar)</code> to free its geometries, materials and textures.</p>
+          </section>
+
+          <section id="customise">
+            <h3>Customising traits</h3>
+            <p>
+              Every avatar starts from its seed, and any option you pass overrides that one trait. Everything else stays
+              the same, so a user keeps their face when they change their hair.
+            </p>
+            <pre><code><span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id, {
+  hair: <span class="s">"locs"</span>,
+  skin: <span class="s">2</span>,                    <span class="c">// index into SKIN_TONES (0 = deepest) or a hex like "#8b563a"</span>
+  expression: <span class="s">"grin"</span>,
+  outfit: <span class="s">"hoodie"</span>,
+  glasses: <span class="s">"round"</span>,
+  background: <span class="s">"#cde2f7"</span>,
+});</code></pre>
+            <p>
+              To let users personalise their avatar, store only the options they changed next to their ID, for example
+              <code>{ "hair": "locs" }</code>, and pass them back in. See <a href="#api-options">AvatarOptions</a>
+              for every value.
+            </p>
+          </section>
+
+          <section id="glb">
+            <h3>Exporting .glb</h3>
+            <p>Use three.js's <code>GLTFExporter</code> to save an avatar as a binary glTF file:</p>
+            <pre><code><span class="k">import</span> { GLTFExporter } <span class="k">from</span> <span class="s">"three/addons/exporters/GLTFExporter.js"</span>;
+
+<span class="k">const</span> avatar = <span class="k">await</span> zuri.create(<span class="s">"hiro"</span>);
+<span class="k">const</span> glb = <span class="k">await new</span> GLTFExporter().parseAsync(avatar, { binary: <span class="k">true</span> });
+<span class="k">const</span> url = URL.createObjectURL(<span class="k">new</span> Blob([glb], { type: <span class="s">"model/gltf-binary"</span> }));</code></pre>
+            <p>The file includes the painted face texture and materials. Idle animation is not exported.</p>
+          </section>
+
+          <section id="flat">
+            <h3>Flat 2D avatars</h3>
+            <p>
+              The flat style draws the same traits (skin tone, hair, outfit, expression, glasses and so on) as a vector
+              illustration. It returns an SVG string of about 4&nbsp;KB, runs anywhere JavaScript does, and doesn't need
+              three.js. Import it from <code>@zuri/avatar/flat</code> to keep three.js out of your bundle.
+            </p>
+            <pre><code><span class="k">import</span> { createFlatAvatar, flatAvatarDataURL } <span class="k">from</span> <span class="s">"@zuri/avatar/flat"</span>;
+
+<span class="k">const</span> svg = createFlatAvatar(user.id, { size: <span class="s">96</span>, shape: <span class="s">"circle"</span> });
+img.src = flatAvatarDataURL(svg);              <span class="c">// or insert the SVG markup directly</span></code></pre>
+            <p>
+              Every <a href="#api-options">AvatarOptions</a> override works here too, plus <code>size</code>,
+              <code>transparent</code> and <code>shape</code> (<code>"square"</code>, <code>"rounded"</code> or
+              <code>"circle"</code>). See <a href="#api-flat">createFlatAvatar</a>.
+            </p>
+            <p class="label">On a server</p>
+            <pre><code><span class="c">// Express, Next.js route handlers, Cloudflare Workers… anything that can return text.</span>
+app.get(<span class="s">"/avatars/:id.svg"</span>, (req, res) =&gt; {
+  res.type(<span class="s">"image/svg+xml"</span>).set(<span class="s">"Cache-Control"</span>, <span class="s">"public, max-age=31536000, immutable"</span>);
+  res.send(createFlatAvatar(req.params.id, { size: <span class="s">256</span> }));
+});</code></pre>
+            <p>
+              Because the same ID always gives the same picture, these responses can be cached forever. In the browser,
+              <code>rasterizeSVG(svg, { size: 512 })</code> turns the SVG into a PNG data URL when you need a bitmap.
+            </p>
+          </section>
+
+          <section id="frameworks">
+            <h3>React, Vue and others</h3>
+            <p>
+              Zuri has no framework dependency. Create one <code>AvatarFactory</code> for the whole app and use images
+              for lists and profile pictures. Use live 3D only for the one or two avatars that need it.
+            </p>
+            <p class="label">React</p>
+            <pre><code><span class="k">import</span> { useEffect, useState } <span class="k">from</span> <span class="s">"react"</span>;
+<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
+
+<span class="k">export function</span> Avatar({ seed, size = <span class="s">48</span> }) {
+  <span class="k">const</span> [src, setSrc] = useState();
+  useEffect(() =&gt; {
+    <span class="k">let</span> live = <span class="k">true</span>;
+    zuri.create(seed, { quality: <span class="s">0.75</span> }).then((a) =&gt; {
+      <span class="k">if</span> (live) setSrc(snapshotAvatar(a, { size: size * <span class="s">2</span> }));
+      disposeAvatar(a);
+    });
+    <span class="k">return</span> () =&gt; { live = <span class="k">false</span>; };
+  }, [seed, size]);
+  <span class="k">return</span> &lt;img src={src} width={size} height={size} alt="" /&gt;;
+}</code></pre>
+            <p class="label">Vue</p>
+            <pre><code>&lt;script setup&gt;
+<span class="k">import</span> { ref, watchEffect } <span class="k">from</span> <span class="s">"vue"</span>;
+<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> props = defineProps({ seed: String, size: { type: Number, default: <span class="s">48</span> } });
+<span class="k">const</span> src = ref();
+<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
+watchEffect(<span class="k">async</span> () =&gt; {
+  <span class="k">const</span> a = <span class="k">await</span> zuri.create(props.seed, { quality: <span class="s">0.75</span> });
+  src.value = snapshotAvatar(a, { size: props.size * <span class="s">2</span> });
+  disposeAvatar(a);
+});
+&lt;/script&gt;
+
+&lt;template&gt;&lt;img :src="src" :width="size" :height="size" alt="" /&gt;&lt;/template&gt;</code></pre>
+            <p>
+              Svelte, Angular, Solid and plain JavaScript follow the same pattern: create the avatar, take a snapshot,
+              put it in an <code>&lt;img&gt;</code>. With server-side rendering (Next.js, Nuxt, SvelteKit), only call
+              Zuri in the browser, for example inside <code>useEffect</code> or <code>onMount</code>, because it needs
+              WebGL and Web Workers.
+            </p>
+          </section>
+
+          <section id="performance">
+            <h3>Performance</h3>
+            <ul>
+              <li><b>Reuse one factory.</b> Each <code>AvatarFactory</code> starts its own worker pool (up to 4 workers).</li>
+              <li><b>Lower the quality for small images.</b> <code>quality: 0.75</code> is noticeably faster and looks the same at thumbnail sizes.</li>
+              <li><b>Cache images.</b> The same seed always gives the same picture, so you can keep data URLs in memory or <code>localStorage</code>.</li>
+              <li><b>Dispose.</b> Call <code>disposeAvatar</code> on avatars you no longer show, and <code>factory.dispose()</code> to stop the workers.</li>
+              <li><b>Limit live canvases.</b> Every <code>AvatarStage</code> owns a WebGL context, and browsers allow only about 16 at once.</li>
+            </ul>
+          </section>
+
+          <section id="reference">
+            <h2 class="ref-heading">API reference</h2>
+          </section>
+
+          <section id="api-create" class="api">
+            <h3>createAvatar(seed, options?)</h3>
+            <pre class="sig"><code>createAvatar(seed: string, options?: AvatarOptions &amp; { quality?: number }): Avatar</code></pre>
+            <p>
+              Builds an avatar synchronously on the main thread. Simple, but it blocks for tens of milliseconds, so
+              prefer <code>AvatarFactory</code> in apps.
+            </p>
+          </section>
+
+          <section id="api-factory" class="api">
+            <h3>AvatarFactory</h3>
+            <pre class="sig"><code>new AvatarFactory(options?: { workers?: number })</code></pre>
+            <p>
+              Builds avatars on a pool of Web Workers. <code>workers</code> defaults to your CPU cores minus one, at
+              most 4. Pass <code>0</code> to build on the main thread. Without Worker support, it falls back to the
+              main thread automatically.
+            </p>
+            <table>
+              <tr><th>Method</th><th>Description</th></tr>
+              <tr><td><code>create(seed, options?)</code></td><td>Returns <code>Promise&lt;Avatar&gt;</code>. Accepts all <a href="#api-options">AvatarOptions</a> plus <code>quality</code>.</td></tr>
+              <tr><td><code>build(params, quality?)</code></td><td>Builds from <code>AvatarParams</code> you got from <code>generateAvatar</code> (and possibly edited).</td></tr>
+              <tr><td><code>dispose()</code></td><td>Stops all workers.</td></tr>
+            </table>
+          </section>
+
+          <section id="api-stage" class="api">
+            <h3>AvatarStage</h3>
+            <pre class="sig"><code>new AvatarStage(options?: { canvas?, transparent?, pixelRatio?, preserveDrawingBuffer? })</code></pre>
+            <p>A lit scene, camera and WebGL renderer for showing one avatar.</p>
+            <table>
+              <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+              <tr><td><code>canvas</code></td><td>new canvas</td><td>The canvas to draw into. Read it from <code>stage.renderer.domElement</code> if you didn't pass one.</td></tr>
+              <tr><td><code>transparent</code></td><td><code>false</code></td><td>Transparent background instead of the avatar's colour.</td></tr>
+              <tr><td><code>pixelRatio</code></td><td>device, max 2</td><td>Render resolution multiplier.</td></tr>
+              <tr><td><code>preserveDrawingBuffer</code></td><td><code>false</code></td><td>Keep the image so the canvas can be read back at any time.</td></tr>
+            </table>
+            <table>
+              <tr><th>Member</th><th>Description</th></tr>
+              <tr><td><code>show(avatar)</code></td><td>Display an avatar, disposing the previous one.</td></tr>
+              <tr><td><code>setSize(w, h)</code></td><td>Resize the canvas and reframe the camera.</td></tr>
+              <tr><td><code>frame("head" | "bust")</code></td><td>Close-up of the head, or head and shoulders (default).</td></tr>
+              <tr><td><code>render(time?)</code></td><td>Draw a frame. Pass time in seconds to animate blinks and sway.</td></tr>
+              <tr><td><code>dispose()</code></td><td>Free the avatar and the renderer.</td></tr>
+              <tr><td><code>avatar</code>, <code>scene</code>, <code>camera</code>, <code>renderer</code></td><td>The underlying three.js objects, for anything else.</td></tr>
+            </table>
+          </section>
+
+          <section id="api-snapshot" class="api">
+            <h3>snapshotAvatar(avatar, options?)</h3>
+            <pre class="sig"><code>snapshotAvatar(avatar: Avatar, options?: SnapshotOptions): string</code></pre>
+            <p>Renders the avatar to a data URL. The avatar is not modified or disposed.</p>
+            <table>
+              <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+              <tr><td><code>size</code></td><td><code>256</code></td><td>Width and height in pixels.</td></tr>
+              <tr><td><code>framing</code></td><td><code>"bust"</code></td><td><code>"head"</code> or <code>"bust"</code>.</td></tr>
+              <tr><td><code>transparent</code></td><td><code>false</code></td><td>Drop the background colour.</td></tr>
+              <tr><td><code>type</code></td><td><code>"image/png"</code></td><td><code>"image/png"</code>, <code>"image/webp"</code> or <code>"image/jpeg"</code>.</td></tr>
+              <tr><td><code>quality</code></td><td>browser default</td><td>0 to 1, for WebP and JPEG.</td></tr>
+            </table>
+          </section>
+
+          <section id="api-render" class="api">
+            <h3>renderAvatarImage(seed, options?)</h3>
+            <pre class="sig"><code>renderAvatarImage(seed: string, options?: AvatarOptions &amp; SnapshotOptions): string</code></pre>
+            <p>
+              Builds, snapshots and disposes in one call on the main thread. Handy for one image; for many, use
+              <code>AvatarFactory</code> and <code>snapshotAvatar</code>.
+            </p>
+          </section>
+
+          <section id="api-generate" class="api">
+            <h3>generateAvatar(seed, options?)</h3>
+            <pre class="sig"><code>generateAvatar(seed: string, options?: AvatarOptions): AvatarParams</code></pre>
+            <p>
+              Returns the plain-data description of an avatar (skin, face shape, eyes, hair, outfit, expression and so
+              on) without building anything. It needs no WebGL, so it also runs on a server. Useful for showing trait
+              names, or for editing a field and passing the result to <code>factory.build(params)</code>.
+            </p>
+            <pre><code><span class="k">import</span> { generateAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar/params"</span>;
+
+generateAvatar(<span class="s">"ada"</span>).hair.style;              <span class="c">// e.g. "curly"</span></code></pre>
+          </section>
+
+          <section id="api-options" class="api">
+            <h3>AvatarOptions</h3>
+            <p>Every field is optional. Anything you leave out comes from the seed.</p>
+            <table>
+              <tr><th>Option</th><th>Values</th></tr>
+              <tr><td><code>presentation</code></td><td><code>"feminine"</code>, <code>"masculine"</code></td></tr>
+              <tr><td><code>skin</code></td><td>Index 0–13 into <code>SKIN_TONES</code> (0 = deepest), or any hex colour</td></tr>
+              <tr><td><code>hair</code></td><td><code>"none"</code>, <code>"buzz"</code>, <code>"crop"</code>, <code>"fade"</code>, <code>"hightop"</code>, <code>"afro"</code>, <code>"puffs"</code>, <code>"bun"</code>, <code>"locs"</code>, <code>"braids"</code>, <code>"cornrows"</code>, <code>"long"</code>, <code>"bob"</code>, <code>"ponytail"</code>, <code>"curly"</code>, <code>"headwrap"</code></td></tr>
+              <tr><td><code>outfit</code></td><td><code>"tee"</code>, <code>"vneck"</code>, <code>"hoodie"</code>, <code>"shirt"</code>, <code>"turtleneck"</code>, <code>"blazer"</code>, <code>"tank"</code></td></tr>
+              <tr><td><code>expression</code></td><td><code>"neutral"</code>, <code>"smile"</code>, <code>"grin"</code>, <code>"laugh"</code>, <code>"surprised"</code>, <code>"wink"</code>, <code>"smirk"</code></td></tr>
+              <tr><td><code>glasses</code></td><td><code>"none"</code>, <code>"round"</code>, <code>"square"</code></td></tr>
+              <tr><td><code>facialHair</code></td><td><code>"none"</code>, <code>"stubble"</code>, <code>"mustache"</code>, <code>"goatee"</code>, <code>"beard"</code></td></tr>
+              <tr><td><code>background</code></td><td>Any hex colour</td></tr>
+              <tr><td><code>quality</code></td><td>Mesh detail, default <code>1</code>. <code>0.75</code> is faster for thumbnails.</td></tr>
+            </table>
+          </section>
+
+          <section id="api-avatar" class="api">
+            <h3>The Avatar object</h3>
+            <p>An avatar is a <code>THREE.Group</code> with a few extras on <code>userData</code>:</p>
+            <table>
+              <tr><th>Field</th><th>Description</th></tr>
+              <tr><td><code>userData.params</code></td><td>The <code>AvatarParams</code> it was built from.</td></tr>
+              <tr><td><code>userData.tick(t)</code></td><td>Advance the idle animation to time <code>t</code> in seconds.</td></tr>
+              <tr><td><code>userData.top</code></td><td>The y position of the top of the hair, for framing.</td></tr>
+            </table>
+            <p>Free it with <code>disposeAvatar(avatar)</code> when you're done.</p>
+          </section>
+
+          <section id="api-flat" class="api">
+            <h3>createFlatAvatar(seed, options?)</h3>
+            <pre class="sig"><code>createFlatAvatar(seed: string, options?: AvatarOptions &amp; FlatOptions): string</code></pre>
+            <p>Returns a flat 2D avatar as an SVG string. Works in browsers, Node, Deno, Bun and workers.</p>
+            <table>
+              <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+              <tr><td><code>size</code></td><td><code>256</code></td><td>Width and height in pixels. The drawing is a vector, so any size stays sharp.</td></tr>
+              <tr><td><code>transparent</code></td><td><code>false</code></td><td>Leave out the background colour.</td></tr>
+              <tr><td><code>shape</code></td><td><code>"square"</code></td><td><code>"square"</code>, <code>"rounded"</code> or <code>"circle"</code>.</td></tr>
+            </table>
+            <table>
+              <tr><th>Related</th><th>Description</th></tr>
+              <tr><td><code>flatAvatarSVG(params, options?)</code></td><td>Draw from <code>AvatarParams</code> you got from <code>generateAvatar</code>.</td></tr>
+              <tr><td><code>flatAvatarDataURL(svg)</code></td><td>Turn the SVG into a URL for <code>&lt;img src&gt;</code> or CSS.</td></tr>
+              <tr><td><code>rasterizeSVG(svg, options?)</code></td><td>Browser only. Returns a PNG, WebP or JPEG data URL. Takes <code>size</code>, <code>type</code> and <code>quality</code>.</td></tr>
+            </table>
+          </section>
+
+          <section id="api-constants" class="api">
+            <h3>Constants</h3>
+            <p>Useful for building your own pickers:</p>
+            <table>
+              <tr><th>Export</th><th>Contents</th></tr>
+              <tr><td><code>SKIN_TONES</code></td><td>14 hex colours, deepest to lightest</td></tr>
+              <tr><td><code>HAIR_STYLE_LIST</code></td><td>All 16 hairstyles</td></tr>
+              <tr><td><code>OUTFIT_LIST</code></td><td>All 7 tops</td></tr>
+              <tr><td><code>EXPRESSION_LIST</code></td><td>All 7 expressions</td></tr>
+              <tr><td><code>BACKGROUNDS</code></td><td>The 9 default background colours</td></tr>
+              <tr><td><code>HAIR_COLORS</code>, <code>EYE_COLORS</code>, <code>CLOTH_COLORS</code></td><td>Named palettes</td></tr>
+            </table>
+          </section>
+
+          <section id="determinism">
+            <h3>Determinism</h3>
+            <p>
+              The seed is hashed into a random number generator, and each group of traits (identity, shape, style,
+              mood) uses its own stream. So overriding one trait never changes the others, and the same seed gives the
+              same face on every device and browser.
+            </p>
+            <p>
+              Seeds are case-sensitive: <code>"Ada"</code> and <code>"ada"</code> are different faces. Normalise them
+              (for example, lower-case emails) before passing them in. Every result carries
+              <code>params.version</code>, which only changes in a release that alters existing faces.
+            </p>
+          </section>
+
+          <section id="privacy">
+            <h3>Privacy</h3>
+            <p>
+              The library runs entirely in the browser and makes no network requests, so no personal data leaves the
+              device. If you would rather not use emails as seeds, hash them first; the avatar is just as unique.
+            </p>
+            <pre><code><span class="k">const</span> bytes = <span class="k">await</span> crypto.subtle.digest(<span class="s">"SHA-256"</span>, <span class="k">new</span> TextEncoder().encode(email.toLowerCase()));
+<span class="k">const</span> seed = [...<span class="k">new</span> Uint8Array(bytes)].map((b) =&gt; b.toString(<span class="s">16</span>).padStart(<span class="s">2</span>, <span class="s">"0"</span>)).join(<span class="s">""</span>);</code></pre>
+          </section>
+
+          <section id="api-hosted">
+            <h3>Hosted API <span class="soon">coming soon</span></h3>
+            <p>
+              A hosted image API is planned for apps that can't run WebGL, such as emails, native apps and server
+              rendering. Avatars will be plain URLs, cached on a CDN:
+            </p>
+            <pre><code>https://api.zuri.dev/avatar/{seed}.png?size=256
+https://api.zuri.dev/avatar/{seed}.glb</code></pre>
+            <p>It isn't live yet. <a href="mailto:hello@zuri.dev?subject=Zuri%20hosted%20API">Email us</a> to hear when it is.</p>
+          </section>
+
+          <section id="troubleshooting">
+            <h3>Troubleshooting</h3>
+            <dl>
+              <dt>The canvas is blank.</dt>
+              <dd>Call <code>stage.setSize()</code> with non-zero values, then <code>stage.render()</code>. Nothing draws until you render.</dd>
+              <dt>The avatar looks black in my own scene.</dt>
+              <dd>Add lights, or an environment map such as three.js's <code>RoomEnvironment</code>. <code>AvatarStage</code> sets these up for you.</dd>
+              <dt>"Failed to construct 'Worker'" or a 404 for worker.ts.</dt>
+              <dd>Your bundler isn't handling the worker. Use one of the bundlers above, or pass <code>{ workers: 0 }</code> to <code>AvatarFactory</code>.</dd>
+              <dt>"window is not defined" or "document is not defined".</dt>
+              <dd>The code ran on the server. Only build and render 3D avatars in the browser. <code>generateAvatar</code> and the flat style (<code>@zuri/avatar/flat</code>) work anywhere.</dd>
+              <dt>The browser warns about too many WebGL contexts.</dt>
+              <dd>Use images for lists, keep live stages to a few, and call <code>stage.dispose()</code> when you remove one.</dd>
+            </dl>
+            <p>
+              Still stuck? <a href="https://github.com/bright-kumedzro/zuri/issues" target="_blank" rel="noreferrer">Open an issue on GitHub</a>
+              or <a href="mailto:hello@zuri.dev">email us</a>.
+            </p>
+          </section>
+        </main>
+      </div>
+
+      <footer class="bottom">
+        <div>zuri · deterministic 3D avatars · MIT</div>
+        <div class="foot-links">
+          <a href="/">Home</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="mailto:hello@zuri.dev">Contact</a>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/docs.ts"></script>
+  </body>
+</html>

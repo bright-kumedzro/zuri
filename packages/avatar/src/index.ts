@@ -14,6 +14,7 @@ export { AvatarStage, renderAvatarImage, snapshotAvatar, type Framing, type Imag
 export { AvatarFactory, type FactoryOptions } from "./factory.ts";
 export { meshAvatar, type AvatarMeshes } from "./mesh.ts";
 export { assembleAvatar } from "./build.ts";
+export { createFlatAvatar, flatAvatarDataURL, flatAvatarSVG, rasterizeSVG, type FlatOptions } from "./flat.ts";
 
 export function createAvatar(seed: string, options: AvatarOptions & BuildOptions = {}): Avatar {
   return buildAvatar(generateAvatar(seed, options), options);

@@ -13,6 +13,25 @@ scene.add(avatar);                                    // live 3D (call avatar.us
 img.src = snapshotAvatar(avatar, { size: 256 });      // or a PNG
 ```
 
+## Styles
+
+The same seed gives the same person in every style, because every style draws the same `AvatarParams`.
+
+| Style | Status | Output |
+|---|---|---|
+| Soft 3D (Memoji-like) | Shipped | Live three.js, PNG/WebP, .glb |
+| Flat 2D (vector illustration) | Shipped | SVG string, no DOM or WebGL (`@zuri/avatar/flat`) |
+| Toon 3D (Pixar-like: exaggerated, sculpted hair) | Planned | A variant of the 3D engine |
+| Social 3D (Meta-like: natural proportions) | Planned | A variant of the 3D engine |
+| Full-body 3D (game and metaverse characters) | Planned | Needs bodies and rigging |
+| Realistic digital humans | Prototype | The v0 MakeHuman engine below |
+
+```ts
+import { createFlatAvatar } from "@zuri/avatar/flat";
+
+const svg = createFlatAvatar("ada@example.com", { size: 256, shape: "circle" }); // ~4 KB, runs on servers too
+```
+
 ## How it works
 
 ```
@@ -35,7 +54,7 @@ seed ─► params (skin, face shape, eyes, hair, outfit, expression…) ─► 
 | Path | What |
 |---|---|
 | `packages/avatar` | The stylized avatar engine: params, SDF parts, mesher, worker pool, stage (lighting/camera), snapshots |
-| `apps/web` | Landing page (hero, wall, playground, pricing, FAQ) at `/` and a dev contact sheet at `/lab.html` |
+| `apps/web` | Landing page (hero, wall, styles, builder, playground, pricing, FAQ) at `/`, docs at `/docs.html`, and a dev contact sheet at `/lab.html` (`&style=flat` for 2D) |
 | `packages/core`, `packages/three`, `apps/viewer` | v0 realistic engine built on MakeHuman CC0 data (see below) |
 
 ## Develop
@@ -53,8 +72,8 @@ changing the engine:
 
 ## Status
 
-Working: the stylized generator (all styles), live 3D, PNG and GLB export, the worker pool, and the landing
-page. The pricing page is copy only: there is no billing, API keys or hosted `api.zuri.dev` yet.
+Working: the 3D generator (all traits), the flat 2D style, live 3D, PNG, SVG and GLB export, the worker pool, the
+landing page and the docs. The pricing page is copy only: there is no billing, API keys or hosted `api.zuri.dev` yet.
 
 Next:
 1. A hosted image API (`/v1/avatar/{seed}.png`): headless render plus a CDN.
