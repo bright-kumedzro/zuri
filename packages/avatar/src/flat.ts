@@ -7,6 +7,8 @@
 
 import { Random } from "@zuri/core/random";
 import { generateAvatar, isHexColor, type AvatarOptions, type AvatarParams } from "./params.ts";
+import { GARMENTS } from "./wardrobe/index.ts";
+import { flatHeadtie, flatNecklace, flatScarf } from "./wardrobe/accessories.ts";
 
 export interface FlatOptions {
   /** Width and height in pixels. Default 256. The drawing is resolution-independent. */
@@ -217,9 +219,24 @@ function hair(p: AvatarParams, g: Geo, id: string): HairLayers {
 }
 
 function outfit(p: AvatarParams, g: Geo, id: string): { behind: string; body: string } {
+  const fit = top(p, g, id);
+  // Accessories sit over the top.
+  const s = g.shoulder;
+  if (p.accessory === "scarf") fit.body += flatScarf(CX, s, p.outfit.accent, mix(p.outfit.accent, "#000000", 0.3));
+  if (p.accessory === "necklace") fit.body += flatNecklace(CX, s);
+  return fit;
+}
+
+function top(p: AvatarParams, g: Geo, id: string): { behind: string; body: string } {
   const { style, color, accent, stripes } = p.outfit;
   const s = g.shoulder;
   const shade = mix(color, "#000000", 0.25);
+  const garment = GARMENTS[style];
+  if (garment) {
+    const out = garment.flat(p, { CX, s, color, accent, shade, skin: p.skin, print: p.hair.pattern, mix, id });
+    const torso = out.torso ?? `M28 512C28 440 70 ${s} 150 ${s - 4}L362 ${s - 4}C442 ${s} 484 440 484 512Z`;
+    return { behind: out.behind ?? "", body: `<path d="${torso}" fill="${color}"/>${out.body}` };
+  }
   const skinShade = mix(p.skin, "#000000", 0.14);
   const torso = `M28 512C28 440 70 ${s} 150 ${s - 4}L362 ${s - 4}C442 ${s} 484 440 484 512Z`;
   const tank = `M118 512L126 446C130 414 148 396 170 392L188 389C204 444 308 444 324 389L342 392C364 396 382 414 386 446L394 512Z`;
@@ -252,15 +269,6 @@ function outfit(p: AvatarParams, g: Geo, id: string): { behind: string; body: st
     case "tank":
       body += `<path d="M188 389C204 444 308 444 324 389" fill="none" stroke="${shade}" stroke-width="5"/>`;
       break;
-    case "suit": {
-      // White shirt in a deep V, collar points, a tie in the accent colour, then lapels over the top.
-      const tie = mix(accent, "#000000", 0.25);
-      body += `<path d="M${CX - 58} ${s - 5}L${CX} ${s + 140}L${CX + 58} ${s - 5}Z" fill="#f4f1ea"/>`;
-      body += `<path d="M${CX - 16} ${s + 22}L${CX - 20} ${s + 120}L${CX} ${s + 140}L${CX + 20} ${s + 120}L${CX + 16} ${s + 22}Z" fill="${accent}"/><path d="M${CX - 13} ${s + 6}H${CX + 13}L${CX + 16} ${s + 24}H${CX - 16}Z" fill="${tie}"/>`;
-      body += `<path d="M${CX - 40} ${s - 8}L${CX - 6} ${s + 8}L${CX - 22} ${s + 34}ZM${CX + 40} ${s - 8}L${CX + 6} ${s + 8}L${CX + 22} ${s + 34}Z" fill="#ffffff" stroke="#d9d3c7" stroke-width="2" stroke-linejoin="round"/>`;
-      body += `<path d="M${CX - 60} ${s - 8}L${CX - 34} ${s + 56}L${CX - 54} ${s + 62}L${CX - 6} ${s + 150}L${CX - 6} 512L${CX - 100} 512L${CX - 100} ${s + 10}ZM${CX + 60} ${s - 8}L${CX + 34} ${s + 56}L${CX + 54} ${s + 62}L${CX + 6} ${s + 150}L${CX + 6} 512L${CX + 100} 512L${CX + 100} ${s + 10}Z" fill="${shade}" opacity=".6"/><circle cx="${CX}" cy="${s + 162}" r="5" fill="${shade}"/>`;
-      break;
-    }
   }
   return { behind, body };
 }
@@ -389,7 +397,8 @@ export function flatAvatarSVG(raw: AvatarParams, options: FlatOptions = {}): str
   const skinShade = mix(p.skin, "#000000", 0.14);
   const skinDark = mix(p.skin, "#000000", 0.3);
   const head = headPath(g, p.face.cheeks);
-  const h = hair(p, g, id);
+  // A head tie (gele) replaces the hair.
+  const h = p.accessory === "headtie" ? { back: "", front: [], extra: flatHeadtie(CX, g.top, W, p.hair.pattern) } : hair(p, g, id);
   const fit = outfit(p, g, id);
   const beardColor = p.hair.style === "none" || p.hair.style === "headwrap" ? p.brows.color : p.hair.color;
   const fh = facialHair(p, g, id, beardColor);

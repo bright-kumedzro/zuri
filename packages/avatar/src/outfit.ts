@@ -2,19 +2,42 @@
 
 import type { AvatarParams } from "./params.ts";
 import { BODY_BOTTOM, SHOULDER_Y, type Rig } from "./head.ts";
-import { surfaceZ, type Box } from "./mesher.ts";
-import { type SDF, capsule, ellipsoid, noise3, smax, smin, torus } from "./sdf.ts";
+import type { Box } from "./mesher.ts";
+import { type SDF, capsule, ellipsoid, smax, smin, torus } from "./sdf.ts";
+import { GARMENTS, makeKit } from "./wardrobe/index.ts";
+import { scarf } from "./wardrobe/accessories.ts";
 
 export interface OutfitShape {
   sdf: SDF;
   box: Box;
   cell: number;
-  /** Palette entry for a surface point: 0 = main, 1 = accent, 2 = white detail. */
+  /** Palette entry for a surface point: 0 = main, 1 = accent, 2 = white detail, 3+ = `extra`. */
   region: (x: number, y: number, z: number) => number;
+  extra?: string[];
+  /** Overrides the main color. */
+  main?: string;
 }
 
 export function buildOutfit(p: AvatarParams, rig: Rig): OutfitShape {
+  const base = buildTop(p, rig);
+  if (p.accessory !== "scarf") return base;
+  // The scarf wraps over whatever is worn, in the accent color.
+  const wrapped = scarf(makeKit(p, rig), base.sdf);
+  return {
+    ...base,
+    sdf: (x, y, z) => Math.min(base.sdf(x, y, z), wrapped(x, y, z)),
+    region: (x, y, z) => (wrapped(x, y, z) < Math.abs(base.sdf(x, y, z)) ? 1 : base.region(x, y, z)),
+    cell: Math.min(base.cell, 0.024),
+  };
+}
+
+function buildTop(p: AvatarParams, rig: Rig): OutfitShape {
   const style = p.outfit.style;
+  const garment = GARMENTS[style];
+  if (garment) {
+    const g = garment.build(p, makeKit(p, rig));
+    return { sdf: g.sdf, region: g.region, extra: g.extra, main: g.main, cell: g.cell ?? 0.026, box: { min: [-1.85, BODY_BOTTOM - 0.06, -1.15], max: [1.85, SHOULDER_Y + 0.9, 1.05] } };
+  }
   const nr = rig.neck.radius;
   const nz = rig.neck.z;
   const holeR = nr + 0.06;
@@ -46,68 +69,6 @@ export function buildOutfit(p: AvatarParams, rig: Rig): OutfitShape {
   let region: OutfitShape["region"] = () => 0;
 
   switch (style) {
-    case "suit": {
-      // Three layers: a white shirt with a collar, a tie down its front, and a jacket with a deep V and lapels.
-      const shirt = (x: number, y: number, z: number) => rig.torso(x, y, z) - 0.045;
-      const jacketShell = (x: number, y: number, z: number) =>
-        rig.torso(x, y, z) - 0.095 - 0.012 * noise3(x * 2.2, y * 3.5, z * 2.2); // gentle fabric folds
-      const top = yF + 0.02, vBottom = yF - 0.95;
-      const edge = (y: number) => 0.05 + (y - vBottom) * 0.36; // half-width of the V opening
-      // The shirt front, measured once, so the tie can lie on it.
-      const front: number[] = [];
-      for (let i = 0; i <= 120; i++) front.push(surfaceZ(shirt, 0, top - i * 0.01, 1.5, -0.5));
-      const frontZ = (y: number) => {
-        const f = Math.min(119.999, Math.max(0, (top - y) / 0.01)), i = Math.floor(f);
-        return front[i]! + (front[i + 1]! - front[i]!) * (f - i);
-      };
-      const knotY = yF - 0.07, knotZ = frontZ(knotY) + 0.06;
-      const tie = (x: number, y: number, z: number) => {
-        const knot = ellipsoid(x, y - knotY, z - knotZ, 0.085 - 0.25 * Math.max(0, knotY - y), 0.085, 0.06);
-        if (y > knotY + 0.02) return knot;
-        // A blade that widens down the chest, lying 3 cm proud of the shirt so it reads as its own layer.
-        const w = 0.075 + (knotY - y) * 0.09;
-        const blade = Math.max(Math.abs(x) - w, Math.abs(z - frontZ(y) - 0.04) - 0.028, y - knotY + 0.04);
-        return smin(knot, blade, 0.04);
-      };
-      const collar = (x: number, y: number, z: number) => {
-        // A band around the neck that drops at the front into two points either side of the knot.
-        const r = Math.hypot(x, z - nz);
-        const band = Math.abs(r - (nr + 0.06)) - 0.03;
-        const frontness = Math.max(0, (z - nz) / (nr + 0.06));
-        const low = cy - 0.08 - 0.2 * frontness * frontness, high = cy + 0.2 - 0.08 * frontness;
-        let d = smax(band, Math.max(low - y, y - high), 0.02);
-        // Collar points: flat wings lying on the shirt, pointing down and out from the knot.
-        const ax = Math.abs(x);
-        const wing = Math.max(Math.abs(z - frontZ(y) - 0.03) - 0.025, ax - 0.05 - (top - y) * 0.7, 0.03 - ax + (top - y) * 0.15, y - top - 0.02, knotY - 0.2 - y);
-        d = Math.min(d, wing);
-        return smax(d, 0.03 - ax, 0.01); // gap for the knot
-      };
-      const jacket = (x: number, y: number, z: number) => {
-        let d = jacketShell(x, y, z);
-        const ax = Math.abs(x);
-        // Open V at the front, down to the button.
-        const opening = Math.max(ax - edge(y), vBottom - y, 0.05 - z);
-        d = smax(d, -opening, 0.045);
-        // Lapels: raised strips along the V edge, with a notch where they meet the collar.
-        const lapel = Math.max(Math.abs(ax - edge(y) - 0.13) - 0.13, vBottom - 0.02 - y, y - top - 0.06, -z);
-        const notch = Math.abs(y - (yF - 0.28)) - 0.025 + (ax - edge(y) - 0.16) * 0.2;
-        const raised = smax(jacketShell(x, y, z) - 0.045, Math.max(lapel, -notch), 0.022);
-        d = smin(d, raised, 0.022);
-        // Hollow the neck so the jacket sits behind the shirt collar.
-        return smax(d, -neckHole(x, y, z, holeR + 0.05), 0.03);
-      };
-      const buttonY = vBottom - 0.1;
-      const button = (x: number, y: number, z: number) => ellipsoid(x, y - buttonY, z - surfaceZ(jacketShell, 0, buttonY, 1.5, -0.5) - 0.005, 0.035, 0.035, 0.018);
-      const shirtFront = (x: number, y: number, z: number) => smax(shirt(x, y, z), -neckHole(x, y, z, holeR - 0.01), 0.02);
-      sdf = (x, y, z) => Math.min(jacket(x, y, z), shirtFront(x, y, z), tie(x, y, z), collar(x, y, z), button(x, y, z));
-      region = (x, y, z) => {
-        // The tie and buttons win wherever the surface is on them, so their edges stay clean.
-        if (tie(x, y, z) < 0.012 || button(x, y, z) < 0.01) return 1;
-        return Math.abs(Math.min(shirtFront(x, y, z), collar(x, y, z))) < Math.abs(jacket(x, y, z)) ? white : 0;
-      };
-      cell = 0.02;
-      break;
-    }
     case "tank": {
       const top = yF - 0.16;
       sdf = (x, y, z) => {

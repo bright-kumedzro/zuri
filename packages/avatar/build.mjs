@@ -50,8 +50,9 @@ await build({
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 execFileSync(process.execPath, [tsc, "-p", `${dir}/tsconfig.build.json`], { stdio: "inherit" });
 // tsc keeps the source's ".ts" specifiers in declarations; point them at the emitted ".js" names.
-for (const f of readdirSync(`${dir}/dist/types`)) {
+for (const f of readdirSync(`${dir}/dist/types`, { recursive: true })) {
   const file = `${dir}/dist/types/${f}`;
-  writeFileSync(file, readFileSync(file, "utf8").replace(/(from\s+["']\.\/[\w-]+)\.ts(["'])/g, "$1.js$2"));
+  if (!file.endsWith(".d.ts")) continue;
+  writeFileSync(file, readFileSync(file, "utf8").replace(/((?:from\s+|import\()["']\.{1,2}\/[\w./-]+)\.ts(["'])/g, "$1.js$2"));
 }
 console.log(`built dist/ (worker ${(workerCode.length / 1024).toFixed(0)} KB inlined)`);

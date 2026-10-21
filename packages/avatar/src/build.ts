@@ -310,6 +310,18 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
     meshes.push(m);
   }
 
+  if (data.headwear) {
+    const m = new THREE.Mesh(geometry(data.headwear), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.6, sheen: 0.5, sheenRoughness: 0.4, sheenColor: new THREE.Color(1, 1, 1), clearcoat: toon ? 0.3 : 0 }));
+    m.name = "headwear";
+    meshes.push(m);
+  }
+
+  if (data.jewelry) {
+    const m = new THREE.Mesh(geometry(data.jewelry), new THREE.MeshPhysicalMaterial({ color: 0xe0b85c, metalness: 1, roughness: 0.25 }));
+    m.name = "jewelry";
+    meshes.push(m);
+  }
+
   if (data.brows) {
     const m = new THREE.Mesh(geometry(data.brows), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, sheen: 0.4, specularIntensity: 0.3 }));
     m.name = "brows";

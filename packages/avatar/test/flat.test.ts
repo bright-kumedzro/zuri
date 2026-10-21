@@ -15,6 +15,7 @@ test("every trait draws a clean SVG", () => {
     ...OUTFIT_LIST.map((outfit) => ({ outfit })),
     ...(["stubble", "mustache", "goatee", "beard"] as const).map((facialHair) => ({ facialHair })),
     { glasses: "round" as const }, { glasses: "square" as const },
+    ...(["scarf", "necklace", "headtie"] as const).map((accessory) => ({ accessory })),
   ];
   for (const options of cases) {
     const svg = createFlatAvatar("trait-check", { ...options, shape: "circle" });

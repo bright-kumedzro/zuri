@@ -11,8 +11,9 @@ const cols = Number(q.get("cols") ?? 4);
 const size = Number(q.get("size") ?? 320);
 const framing = (q.get("framing") ?? "bust") as Framing;
 const quality = Number(q.get("quality") ?? 1);
-const opts: AvatarOptions = {};
-for (const k of ["presentation", "expression", "hair", "outfit", "glasses", "facialHair"] as const) {
+const baseOpts: AvatarOptions = {};
+const opts = baseOpts;
+for (const k of ["presentation", "expression", "hair", "outfit", "glasses", "facialHair", "accessory", "outfitColor", "accentColor"] as const) {
   const v = q.get(k);
   if (v) (opts as Record<string, string>)[k] = v;
 }
@@ -28,6 +29,9 @@ const factory = new AvatarFactory();
 const t0 = performance.now();
 await Promise.all(
   seeds.map(async (seed, i) => {
+    // &outfits=a,b,c gives tile i its own outfit, for wardrobe contact sheets.
+    const each = q.get("outfits")?.split(",")[i];
+    const opts: AvatarOptions = each ? { ...baseOpts, outfit: each as AvatarOptions["outfit"] } : baseOpts;
     const img = new Image();
     if (q.get("style") === "flat") {
       img.src = flatAvatarDataURL(createFlatAvatar(seed, { ...opts, size }));

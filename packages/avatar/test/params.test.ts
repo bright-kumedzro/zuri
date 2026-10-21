@@ -48,3 +48,23 @@ test("toon style: sculpted brows, finite meshes, same person", () => {
   // Same seed, same toon mesh.
   assert.deepEqual(meshAvatar(p, 0.6, "toon").hair!.positions, toon.hair!.positions);
 });
+
+test("wardrobe: every garment and accessory builds, colors and opt-in rules hold", async () => {
+  const { OUTFIT_LIST, ACCESSORY_LIST, WARDROBE } = await import("../src/params.ts");
+  for (const outfit of OUTFIT_LIST) {
+    const m = meshAvatar(generateAvatar(`wear-${outfit}`, { outfit }), 0.4);
+    assert.ok(m.outfit.indices.length > 300, outfit);
+    assert.ok(m.outfit.positions.every(Number.isFinite), outfit);
+  }
+  const acc = (accessory: (typeof ACCESSORY_LIST)[number]) => meshAvatar(generateAvatar("acc", { accessory }), 0.4);
+  assert.ok(acc("necklace").jewelry!.indices.length > 100);
+  assert.ok(acc("headtie").headwear!.indices.length > 100);
+  assert.equal(acc("headtie").hair, null); // the gele covers the hair
+  // Explicit colors win; garments with their own color use it; invalid colors are ignored.
+  assert.equal(generateAvatar("c", { outfit: "labcoat" }).outfit.color, "#f6f6f3");
+  assert.equal(generateAvatar("c", { outfit: "labcoat", outfitColor: "#123456" }).outfit.color, "#123456");
+  assert.equal(generateAvatar("c", { outfitColor: "red" } as never).outfit.color, generateAvatar("c").outfit.color);
+  // New garments are opt-in: never chosen for generated faces.
+  const random = new Set(WARDROBE.filter((g) => "random" in g && g.random).map((g) => g.id as string));
+  for (let i = 0; i < 300; i++) assert.ok(random.has(generateAvatar(`r${i}`).outfit.style));
+});

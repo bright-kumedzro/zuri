@@ -41,6 +41,7 @@
           <a href="#threejs">In a three.js scene</a>
           <a href="#customise">Customising traits</a>
           <a href="#toon">Toon 3D</a>
+          <a href="#wardrobe">Wardrobe</a>
           <a href="#glb">Exporting .glb</a>
           <a href="#flat">Flat 2D avatars</a>
           <a href="#frameworks">React, Vue and others</a>
@@ -223,6 +224,38 @@ renderer.setAnimationLoop((ms) =&gt; {
             <pre><code><span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id, { style: <span class="s">"toon"</span>, hair: <span class="s">"afro"</span> });
 img.src = snapshotAvatar(avatar, { size: <span class="s">256</span> });</code></pre>
             <p><code>createAvatar</code> and <code>renderAvatarImage</code> accept <code>style</code> too.</p>
+          </section>
+
+          <section id="wardrobe">
+            <h3>Wardrobe</h3>
+            <p>
+              Any avatar can wear any garment, in every style. Pass <code>outfit</code> to choose one, and
+              <code>outfitColor</code> and <code>accentColor</code> (as <code>#rrggbb</code>) to recolor it. The accent
+              colors ties, bows, trims, buttons and scarves.
+            </p>
+            <pre><code><span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id, {
+  outfit: <span class="s">"kente"</span>,
+  accessory: <span class="s">"headtie"</span>,        <span class="c">// a gele, in the avatar's print colors</span>
+});
+
+<span class="k">const</span> doctor = <span class="k">await</span> zuri.create(user.id, { outfit: <span class="s">"labcoat"</span>, accentColor: <span class="s">"#2f5d8a"</span> });</code></pre>
+            <table>
+              <tr><th>Category</th><th>Outfits</th></tr>
+              <tr><td>Everyday</td><td><code>"tee"</code>, <code>"vneck"</code>, <code>"hoodie"</code>, <code>"shirt"</code> (polo), <code>"turtleneck"</code>, <code>"tank"</code>, <code>"sweater"</code>, <code>"cardigan"</code>, <code>"buttonup"</code>, <code>"denim"</code></td></tr>
+              <tr><td>Formal</td><td><code>"blazer"</code>, <code>"suit"</code>, <code>"blouse"</code>, <code>"wrap"</code>, <code>"bowtie"</code></td></tr>
+              <tr><td>Traditional</td><td><code>"kaftan"</code> (dashiki), <code>"kente"</code>, <code>"ankara"</code>, <code>"agbada"</code></td></tr>
+              <tr><td>Work</td><td><code>"labcoat"</code>, <code>"scrubs"</code>, <code>"chef"</code></td></tr>
+            </table>
+            <p>
+              Accessories go on top: <code>accessory: "scarf"</code>, <code>"necklace"</code> or <code>"headtie"</code>
+              (which covers the hair). Some garments have their own default color, like a white lab coat or blue denim;
+              <code>outfitColor</code> overrides it.
+            </p>
+            <p>
+              Faces generated from a seed only ever wear the original seven tops. Everything else is opt-in, so new
+              clothes never change an existing user's avatar. <code>WARDROBE</code> lists every garment with its
+              category, for building your own picker.
+            </p>
           </section>
 
           <section id="glb">
@@ -418,7 +451,9 @@ generateAvatar(<span class="s">"ada"</span>).hair.style;              <span clas
               <tr><td><code>presentation</code></td><td><code>"feminine"</code>, <code>"masculine"</code></td></tr>
               <tr><td><code>skin</code></td><td>Index 0–13 into <code>SKIN_TONES</code> (0 = deepest), or any hex colour</td></tr>
               <tr><td><code>hair</code></td><td><code>"none"</code>, <code>"buzz"</code>, <code>"crop"</code>, <code>"fade"</code>, <code>"hightop"</code>, <code>"afro"</code>, <code>"puffs"</code>, <code>"bun"</code>, <code>"locs"</code>, <code>"braids"</code>, <code>"cornrows"</code>, <code>"long"</code>, <code>"bob"</code>, <code>"ponytail"</code>, <code>"curly"</code>, <code>"headwrap"</code></td></tr>
-              <tr><td><code>outfit</code></td><td><code>"tee"</code>, <code>"vneck"</code>, <code>"hoodie"</code>, <code>"shirt"</code>, <code>"turtleneck"</code>, <code>"blazer"</code>, <code>"tank"</code>, <code>"suit"</code> (suit, shirt and tie; only when you ask for it)</td></tr>
+              <tr><td><code>outfit</code></td><td>Any garment in the <a href="#wardrobe">wardrobe</a> (22 of them)</td></tr>
+              <tr><td><code>outfitColor</code>, <code>accentColor</code></td><td>Any hex colour, for the garment and its trims</td></tr>
+              <tr><td><code>accessory</code></td><td><code>"none"</code>, <code>"scarf"</code>, <code>"necklace"</code>, <code>"headtie"</code></td></tr>
               <tr><td><code>expression</code></td><td><code>"neutral"</code>, <code>"smile"</code>, <code>"grin"</code>, <code>"laugh"</code>, <code>"surprised"</code>, <code>"wink"</code>, <code>"smirk"</code></td></tr>
               <tr><td><code>glasses</code></td><td><code>"none"</code>, <code>"round"</code>, <code>"square"</code></td></tr>
               <tr><td><code>facialHair</code></td><td><code>"none"</code>, <code>"stubble"</code>, <code>"mustache"</code>, <code>"goatee"</code>, <code>"beard"</code></td></tr>
@@ -465,7 +500,8 @@ generateAvatar(<span class="s">"ada"</span>).hair.style;              <span clas
               <tr><th>Export</th><th>Contents</th></tr>
               <tr><td><code>SKIN_TONES</code></td><td>14 hex colours, deepest to lightest</td></tr>
               <tr><td><code>HAIR_STYLE_LIST</code></td><td>All 16 hairstyles</td></tr>
-              <tr><td><code>OUTFIT_LIST</code></td><td>All 8 tops</td></tr>
+              <tr><td><code>OUTFIT_LIST</code>, <code>WARDROBE</code></td><td>All 22 garments; <code>WARDROBE</code> adds each one's category and default colors</td></tr>
+              <tr><td><code>ACCESSORY_LIST</code></td><td>The accessories</td></tr>
               <tr><td><code>EXPRESSION_LIST</code></td><td>All 7 expressions</td></tr>
               <tr><td><code>BACKGROUNDS</code></td><td>The 9 default background colours</td></tr>
               <tr><td><code>HAIR_COLORS</code>, <code>EYE_COLORS</code>, <code>CLOTH_COLORS</code></td><td>Named palettes</td></tr>

@@ -39,7 +39,8 @@ seed ─► params (skin, face shape, eyes, hair, outfit, expression…) ─► 
         packages/avatar/src/params.ts                                head.ts hair.ts outfit.ts   mesher.ts (worker)   build.ts
 ```
 
-- **No assets.** The head, neck, ears, nose, lips, 16 hairstyles, beards and 8 tops (including a suit with shirt and tie) are signed distance fields,
+- **No assets.** The head, neck, ears, nose, lips, 16 hairstyles, beards and a 22-piece wardrobe (everyday, formal, traditional and work wear, plus a scarf,
+  necklace and head tie; `src/wardrobe/`) are signed distance fields,
   blended with smooth unions. `mesher.ts` turns them into meshes with surface nets. An octree only samples near
   the surface, and vertices are projected onto it with analytic normals, so the meshes come out smooth.
 - **Painted details.** Brows, mouths (7 expressions), blush, freckles and stubble are drawn on a canvas and

@@ -1,6 +1,9 @@
 /** Seed -> avatar parameters. Pure and deterministic; no rendering dependencies. */
 
 import { Random, clamp } from "@zuri/core/random";
+import { ACCESSORY_LIST, WARDROBE, garmentInfo, type Accessory, type Outfit } from "./wardrobe/catalog.ts";
+
+export { ACCESSORY_LIST, KENTE, WARDROBE, type Accessory, type Category, type GarmentInfo, type Outfit } from "./wardrobe/catalog.ts";
 
 export type Presentation = "feminine" | "masculine";
 export type HairTexture = "straight" | "wavy" | "curly" | "coily";
@@ -8,8 +11,6 @@ export type HairStyle =
   | "none" | "buzz" | "crop" | "fade" | "hightop" | "afro" | "puffs" | "bun" | "locs"
   | "braids" | "cornrows" | "long" | "bob" | "ponytail" | "curly" | "headwrap";
 export type FacialHair = "none" | "stubble" | "mustache" | "goatee" | "beard";
-/** "suit" is opt-in only: it's never picked at random, so adding it changed no existing seed. */
-export type Outfit = "tee" | "vneck" | "hoodie" | "shirt" | "turtleneck" | "blazer" | "tank" | "suit";
 export type Expression = "neutral" | "smile" | "grin" | "laugh" | "surprised" | "wink" | "smirk";
 export type Glasses = "none" | "round" | "square";
 export type Earrings = "none" | "studs" | "hoops";
@@ -36,6 +37,8 @@ export interface AvatarParams {
   glassesColor: string;
   earrings: Earrings;
   outfit: { style: Outfit; color: string; accent: string; stripes: boolean };
+  /** Worn on top of the outfit. "headtie" (a gele) covers the hair. */
+  accessory: Accessory;
   expression: Expression;
   background: string;
 }
@@ -47,6 +50,11 @@ export interface AvatarOptions {
   /** Index into SKIN_TONES or an sRGB hex. */
   skin?: number | string;
   outfit?: Outfit;
+  /** `#rrggbb` for the garment's main color (default: from the seed, or the garment's own color, like a white lab coat). */
+  outfitColor?: string;
+  /** `#rrggbb` for trims, ties, prints and scarves. */
+  accentColor?: string;
+  accessory?: Accessory;
   glasses?: Glasses;
   facialHair?: FacialHair;
   background?: string;
@@ -131,7 +139,8 @@ export const HAIR_STYLE_LIST = [
   "braids", "cornrows", "long", "bob", "ponytail", "curly", "headwrap",
 ] as const satisfies readonly HairStyle[];
 export const EXPRESSION_LIST = ["neutral", "smile", "grin", "laugh", "surprised", "wink", "smirk"] as const satisfies readonly Expression[];
-export const OUTFIT_LIST = ["tee", "vneck", "hoodie", "shirt", "turtleneck", "blazer", "tank", "suit"] as const satisfies readonly Outfit[];
+/** Every garment in the wardrobe, original tops first. */
+export const OUTFIT_LIST = WARDROBE.map((g) => g.id) as readonly Outfit[];
 
 function darken(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -164,6 +173,9 @@ function validOptions(o: AvatarOptions): AvatarOptions {
     hair: oneOf(HAIR_STYLE_LIST, o.hair),
     skin: typeof o.skin === "number" ? (Number.isFinite(o.skin) ? o.skin : undefined) : isHexColor(o.skin) ? o.skin : undefined,
     outfit: oneOf(OUTFIT_LIST, o.outfit),
+    outfitColor: isHexColor(o.outfitColor) ? o.outfitColor : undefined,
+    accentColor: isHexColor(o.accentColor) ? o.accentColor : undefined,
+    accessory: oneOf(ACCESSORY_LIST, o.accessory),
     glasses: oneOf(["none", "round", "square"], o.glasses),
     facialHair: oneOf(["none", "stubble", "mustache", "goatee", "beard"], o.facialHair),
     background: isHexColor(o.background) ? o.background : undefined,
@@ -272,7 +284,14 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
     glasses: options.glasses ?? style.weighted<Glasses>([["none", 7], ["round", 1.4], ["square", 1.6]]),
     glassesColor: style.pick(["#1a1716", "#1a1716", "#5b3a22", "#c9a24d", "#8c2f3a"]),
     earrings: fem ? style.weighted<Earrings>([["none", 3], ["studs", 2], ["hoops", 2]]) : style.weighted<Earrings>([["none", 9], ["studs", 1]]),
-    outfit: { style: outfitStyle, color: clothA, accent: clothB, stripes: style.next() < 0.15 },
+    outfit: {
+      style: outfitStyle,
+      // An explicit color wins; otherwise a garment with its own color (lab coat, denim) uses that, then the seed's.
+      color: options.outfitColor ?? garmentInfo(outfitStyle)?.color ?? clothA,
+      accent: options.accentColor ?? garmentInfo(outfitStyle)?.accent ?? clothB,
+      stripes: style.next() < 0.15,
+    },
+    accessory: options.accessory ?? "none",
     expression: options.expression ?? mood.weighted(EXPRESSIONS),
     background: options.background ?? mood.pick(BACKGROUNDS),
   };

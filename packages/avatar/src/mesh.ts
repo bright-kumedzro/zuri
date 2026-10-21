@@ -8,6 +8,8 @@ import { buildRig, type AvatarStyle } from "./head.ts";
 import { polygonize, type RawMesh } from "./mesher.ts";
 import { FACE_UV } from "./face.ts";
 import { buildBrows, buildFacialHair, buildHair } from "./hair.ts";
+import { headtie, necklace } from "./wardrobe/accessories.ts";
+import { makeKit } from "./wardrobe/kit.ts";
 import { buildOutfit } from "./outfit.ts";
 import { noise3, type SDF } from "./sdf.ts";
 
@@ -24,6 +26,10 @@ export interface AvatarMeshes {
   outfit: PartMesh;
   /** Sculpted brows (toon only; the soft style paints them). */
   brows: PartMesh | null;
+  /** Gold necklace (metallic), if worn. */
+  jewelry: PartMesh | null;
+  /** Head tie (gele), if worn: print fabric that replaces the hair. */
+  headwear: PartMesh | null;
   /** Top of the hair (or head), for framing. */
   top: number;
 }
@@ -114,7 +120,8 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
 
   let top = 1.2;
   let hair: AvatarMeshes["hair"] = null;
-  const hairShape = buildHair(p, rig);
+  // A head tie covers the hair completely.
+  const hairShape = p.accessory === "headtie" ? null : buildHair(p, rig);
   if (hairShape) {
     const raw = polygonize(hairShape.sdf, hairShape.box, hairShape.cell / quality);
     const n = raw.positions.length / 3;
@@ -158,10 +165,7 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
 
   const outfitShape = buildOutfit(p, rig);
   const outfitRaw = polygonize(outfitShape.sdf, outfitShape.box, outfitShape.cell / quality);
-  const main = linearRGB(p.outfit.color);
-  // Suits read as formal in deep tones, so the jacket is a darker shade of the person's outfit color.
-  const jacket = p.outfit.style === "suit" ? (main.map((c) => c * 0.32) as [number, number, number]) : main;
-  const palette = [jacket, linearRGB(p.outfit.accent), linearRGB("#f4f1ea")];
+  const palette = [linearRGB(outfitShape.main ?? p.outfit.color), linearRGB(p.outfit.accent), linearRGB("#f4f1ea"), ...(outfitShape.extra ?? []).map(linearRGB)];
   const n = outfitRaw.positions.length / 3;
   const outfitColors = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
@@ -172,6 +176,28 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
 
   let brows: PartMesh | null = null;
   const outfit: PartMesh = { ...outfitRaw, colors: outfitColors };
+
+  let jewelry: PartMesh | null = null;
+  if (p.accessory === "necklace") {
+    const shape = necklace(makeKit(p, rig), outfitShape.sdf);
+    jewelry = polygonize(shape.sdf, shape.box, shape.cell / quality);
+  }
+  let headwear: PartMesh | null = null;
+  if (p.accessory === "headtie") {
+    const shape = headtie(p, rig);
+    const raw = polygonize(shape.sdf, shape.box, shape.cell / quality);
+    const print = p.hair.pattern.map(linearRGB);
+    const cz = rig.skullCenter[2];
+    const colors = new Float32Array(raw.positions.length);
+    for (let i = 0; i < colors.length; i += 3) {
+      const x = raw.positions[i]!, y = raw.positions[i + 1]!, z = raw.positions[i + 2]!;
+      top = Math.max(top, y);
+      const a = Math.atan2(x, z - cz);
+      colors.set(print[Math.floor(y * 5 + 0.8 * Math.abs(Math.sin(a * 5)) + 100) % 4]!, i);
+    }
+    smoothColors(raw.indices, colors, 1);
+    headwear = { ...raw, colors };
+  }
   if (toon) {
     const shape = buildBrows(p, rig);
     const raw = polygonize(shape.sdf, shape.box, shape.cell / quality);
@@ -189,16 +215,16 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
       for (const f of parts) d = Math.min(d, f(x, y, z));
       return d;
     };
-    for (const part of [body, hair, facialHair, outfit]) if (part) part.colors = shadeAO(part.colors, bakeAO(part, scene));
+    for (const part of [body, hair, facialHair, outfit, headwear]) if (part) part.colors = shadeAO(part.colors, bakeAO(part, scene));
   }
 
-  return { style, body, hair, facialHair, outfit, brows, top };
+  return { style, body, hair, facialHair, outfit, brows, jewelry, headwear, top };
 }
 
 /** Every typed array in the result, for zero-copy postMessage. */
 export function transferables(m: AvatarMeshes): ArrayBuffer[] {
   const out: ArrayBuffer[] = [];
-  for (const part of [m.body, m.hair, m.facialHair, m.outfit, m.brows]) {
+  for (const part of [m.body, m.hair, m.facialHair, m.outfit, m.brows, m.jewelry, m.headwear]) {
     if (!part) continue;
     for (const a of [part.positions, part.normals, part.indices, part.colors, part.uvs]) if (a) out.push(a.buffer as ArrayBuffer);
   }

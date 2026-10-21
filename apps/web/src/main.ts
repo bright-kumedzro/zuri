@@ -2,13 +2,16 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import {
   AvatarFactory,
   AvatarStage,
+  ACCESSORY_LIST,
   BACKGROUNDS,
+  CLOTH_COLORS,
   EXPRESSION_LIST,
   HAIR_STYLE_LIST,
-  OUTFIT_LIST,
   SKIN_TONES,
+  WARDROBE,
   createFlatAvatar,
   disposeAvatar,
+  flatAvatarDataURL,
   flatAvatarSVG,
   rasterizeSVG,
   generateAvatar,
@@ -355,6 +358,53 @@ function swatches(labelKey: Key, items: () => { value: string | undefined; color
   });
 }
 
+/** The wardrobe: category tabs and a grid of thumbnails showing this person in each garment. */
+function wardrobe() {
+  const field = document.createElement("div");
+  field.className = "field wide";
+  const cats = ["all", "everyday", "formal", "traditional", "work"] as const;
+  let cat: (typeof cats)[number] = "all";
+  field.innerHTML = `<span class="label">${t("builder.outfit")}</span><div class="seg wardrobe-tabs" role="tablist"></div><div class="wardrobe-grid"></div>`;
+  const tabs = field.querySelector(".wardrobe-tabs")!, grid = field.querySelector<HTMLElement>(".wardrobe-grid")!;
+  for (const c of cats) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.dataset.cat = c;
+    b.textContent = t(`wardrobe.${c}` as Key);
+    b.addEventListener("click", () => {
+      cat = c;
+      render();
+    });
+    tabs.append(b);
+  }
+  let drawnFor = "";
+  const render = () => {
+    for (const b of tabs.querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-selected", String(b.dataset.cat === cat));
+    const { seed, transparent: _, look: __, outfit: ___, ...rest } = state;
+    // Thumbnails depend on the person, not on the chosen garment, so only redraw when the person changes.
+    const key = JSON.stringify([seed, rest, cat]);
+    if (key !== drawnFor) {
+      drawnFor = key;
+      const items = [{ id: undefined as string | undefined, label: t("opt.auto") }, ...WARDROBE.filter((g) => cat === "all" || g.category === cat).map((g) => ({ id: g.id as string, label: t(`outfit.${g.id}` as Key) }))];
+      grid.innerHTML = items
+        .map(({ id, label }) => {
+          const svg = flatAvatarDataURL(createFlatAvatar(seed || "zuri", { ...rest, outfit: id as AvatarOptions["outfit"], size: 96, shape: "rounded" }));
+          return `<button type="button" class="garment" data-outfit="${id ?? ""}" title="${label}"><img src="${svg}" alt="" loading="lazy" /><span>${label}</span></button>`;
+        })
+        .join("");
+    }
+    for (const b of grid.querySelectorAll<HTMLButtonElement>(".garment")) b.setAttribute("aria-pressed", String(b.dataset.outfit === (state.outfit ?? "")));
+  };
+  grid.addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>(".garment");
+    if (!b) return;
+    state.outfit = (b.dataset.outfit || undefined) as AvatarOptions["outfit"];
+    updateBuilder();
+  });
+  controls.push({ el: field, sync: render });
+}
+
 function buildControls() {
   const root = $("#controls");
   for (const c of controls.splice(0)) c.el.remove();
@@ -368,7 +418,20 @@ function buildControls() {
     () => (state.skin === undefined ? undefined : String(state.skin)),
   );
   dropdown("builder.hair", "hair", () => [auto(), ...HAIR_STYLE_LIST.map((h) => ({ value: h, label: t(`hair.${h}` as Key) }))]);
-  dropdown("builder.outfit", "outfit", () => [auto(), ...OUTFIT_LIST.map((o) => ({ value: o, label: t(`outfit.${o}` as Key) }))]);
+  wardrobe();
+  swatches(
+    "builder.outfitColor",
+    () => [{ value: undefined, label: t("opt.auto"), cls: "auto" }, ...CLOTH_COLORS.map((c) => ({ value: c, color: c, label: c }))],
+    (v) => (state.outfitColor = v),
+    () => state.outfitColor,
+  );
+  swatches(
+    "builder.accentColor",
+    () => [{ value: undefined, label: t("opt.auto"), cls: "auto" }, ...CLOTH_COLORS.map((c) => ({ value: c, color: c, label: c }))],
+    (v) => (state.accentColor = v),
+    () => state.accentColor,
+  );
+  segmented("builder.accessory", "accessory", () => ACCESSORY_LIST.map((a) => ({ value: a === "none" ? undefined : a, label: t(`acc.${a}` as Key) })), true);
   dropdown("builder.facial", "facialHair", () => [
     auto(), { value: "none", label: t("opt.none") },
     ...(["stubble", "mustache", "goatee", "beard"] as const).map((f) => ({ value: f, label: t(`facial.${f}` as Key) })),
