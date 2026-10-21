@@ -19,6 +19,7 @@ import {
 } from "zuri-avatar";
 import { LANGS, detectLang, lang, setLang, t, type Key, type Lang } from "./i18n.ts";
 import { CURRENCIES, detectCurrency, formatPrice, yearly } from "./pricing.ts";
+import { customSelect } from "./select.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -314,6 +315,7 @@ function dropdown(labelKey: Key, key: keyof BuilderState, choices: () => Choice[
   field.innerHTML = `<label for="${id}">${t(labelKey)}</label><select id="${id}"></select>`;
   const select = field.querySelector("select")!;
   for (const c of choices()) select.add(new Option(c.label, c.value ?? ""));
+  customSelect(select);
   select.addEventListener("change", () => {
     (state as unknown as Record<string, unknown>)[key] = select.value || undefined;
     updateBuilder();
@@ -526,6 +528,7 @@ let currency = detectCurrency();
 const currencySelect = $<HTMLSelectElement>("#currency");
 for (const cur of CURRENCIES) currencySelect.add(new Option(cur.label, cur.code));
 currencySelect.value = currency;
+customSelect(currencySelect);
 currencySelect.addEventListener("change", () => {
   currency = currencySelect.value;
   localStorage.setItem("zuri.currency", currency);
@@ -553,6 +556,7 @@ function renderPrices() {
 
 const langSelect = $<HTMLSelectElement>("#lang");
 for (const [code, name] of Object.entries(LANGS)) langSelect.add(new Option(name, code));
+customSelect(langSelect);
 function applyLang(l: Lang) {
   setLang(l);
   langSelect.value = l;
