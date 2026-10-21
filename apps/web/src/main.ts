@@ -482,7 +482,7 @@ scene.add(avatar);
 
 ${c("// idle blinking + sway")}
 renderer.setAnimationLoop((t) =&gt; avatar.userData.tick(t / 1000));`,
-  url: (s) => `${c("# pro: hosted, CDN cached")}
+  url: (s) => `${c("# coming soon: hosted, CDN cached")}
 https://api.zuri.dev/avatar/${encodeURIComponent(s)}.png?size=256
 https://api.zuri.dev/avatar/${encodeURIComponent(s)}.glb`,
 };

@@ -196,6 +196,7 @@ h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 16p
 .plan.featured { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent), 0 24px 60px -30px color-mix(in srgb, var(--accent) 45%, transparent); }
 .badge { position: absolute; top: 22px; right: 22px; font-size: 11px; font-weight: 600; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 2px 9px; }
 .plan h3 { font-size: 16px; margin: 0; }
+.plan.soon .price, .plan.soon .ticks { opacity: 0.6; }
 .plan-desc { margin: 4px 0 18px; font-size: 14px; color: var(--dim); }
 .price { display: flex; align-items: baseline; gap: 4px; }
 .amount { font-size: 40px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
