@@ -32,12 +32,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@brightkumedzro/zuri-avatar':
+        specifier: workspace:*
+        version: link:../../packages/avatar
       three:
         specifier: ^0.180.0
         version: 0.180.0
-      zuri-avatar:
-        specifier: workspace:*
-        version: link:../../packages/avatar
     devDependencies:
       '@types/three':
         specifier: ^0.180.0

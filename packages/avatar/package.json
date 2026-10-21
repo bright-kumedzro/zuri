@@ -1,5 +1,5 @@
 {
-  "name": "zuri-avatar",
+  "name": "@brightkumedzro/zuri-avatar",
   "version": "0.1.0",
   "description": "Deterministic avatars generated from any string: live 3D, PNG, .glb and flat SVG. No assets, pure code.",
   "license": "MIT",

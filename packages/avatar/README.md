@@ -1,4 +1,4 @@
-# zuri-avatar
+# @brightkumedzro/zuri-avatar
 
 A real face for every user. Turn any string (a user ID, an email, a name) into a unique avatar: live 3D, PNG, `.glb`
 or flat SVG. The same string always gives the same face, and everything is generated from code in the browser or on
@@ -9,14 +9,14 @@ your server. No uploads, no assets, no network requests.
 ## Install
 
 ```sh
-npm i zuri-avatar three     # 3D (three.js 0.170 or newer)
-npm i zuri-avatar           # flat SVG only, no three.js needed
+npm i @brightkumedzro/zuri-avatar three     # 3D (three.js 0.170 or newer)
+npm i @brightkumedzro/zuri-avatar           # flat SVG only, no three.js needed
 ```
 
 ## 3D
 
 ```ts
-import { AvatarFactory, AvatarStage, snapshotAvatar } from "zuri-avatar";
+import { AvatarFactory, AvatarStage, snapshotAvatar } from "@brightkumedzro/zuri-avatar";
 
 const zuri = new AvatarFactory();                     // meshes on a Web Worker pool
 const avatar = await zuri.create("ada@example.com");  // a THREE.Group
@@ -32,7 +32,7 @@ stage.render();
 ## Flat 2D
 
 ```ts
-import { createFlatAvatar, flatAvatarDataURL } from "zuri-avatar/flat";
+import { createFlatAvatar, flatAvatarDataURL } from "@brightkumedzro/zuri-avatar/flat";
 
 const svg = createFlatAvatar("ada@example.com", { size: 96, shape: "circle" }); // ~4 KB SVG string
 img.src = flatAvatarDataURL(svg);

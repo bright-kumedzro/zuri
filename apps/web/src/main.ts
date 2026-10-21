@@ -16,7 +16,7 @@ import {
   type Avatar,
   type AvatarOptions,
   type AvatarParams,
-} from "zuri-avatar";
+} from "@brightkumedzro/zuri-avatar";
 import { LANGS, detectLang, lang, setLang, t, type Key, type Lang } from "./i18n.ts";
 import { CURRENCIES, detectCurrency, formatPrice, yearly } from "./pricing.ts";
 import { customSelect } from "./select.ts";
@@ -166,7 +166,7 @@ $("#hero-form").addEventListener("submit", (e) => {
   e.preventDefault();
   openBuilder({ seed: heroSeed });
 });
-$("#copy-install").addEventListener("click", (e) => copy("npm i zuri-avatar three", e.currentTarget as HTMLElement));
+$("#copy-install").addEventListener("click", (e) => copy("npm i @brightkumedzro/zuri-avatar three", e.currentTarget as HTMLElement));
 
 // --- Cast grid ------------------------------------------------------------------------------------
 
@@ -404,12 +404,12 @@ function builderCode(): string {
   const opts = Object.entries(options).filter(([, v]) => v !== undefined);
   if (look === "flat") {
     const all = [...opts, ["size", 512], ...(transparent ? [["transparent", true]] : [])];
-    return `import { createFlatAvatar } from "zuri-avatar/flat";
+    return `import { createFlatAvatar } from "@brightkumedzro/zuri-avatar/flat";
 
 const svg = createFlatAvatar(${JSON.stringify(seed)}, { ${all.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")} });`;
   }
   const args = opts.length ? `, { ${opts.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")} }` : "";
-  return `import { AvatarFactory, snapshotAvatar } from "zuri-avatar";
+  return `import { AvatarFactory, snapshotAvatar } from "@brightkumedzro/zuri-avatar";
 
 const avatar = await new AvatarFactory().create(${JSON.stringify(seed)}${args});
 const png = snapshotAvatar(avatar, { size: 512${transparent ? ", transparent: true" : ""} });`;
@@ -448,13 +448,13 @@ const SNIPPETS: Record<string, (s: string) => string> = {
   html: (s) => `&lt;canvas id="avatar" width="256" height="256"&gt;&lt;/canvas&gt;
 
 &lt;script type="module"&gt;
-  ${k("import")} { AvatarFactory, AvatarStage } ${k("from")} ${str("zuri-avatar")};
+  ${k("import")} { AvatarFactory, AvatarStage } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
 
   ${k("const")} stage = ${k("new")} AvatarStage({ canvas: avatar, transparent: ${k("true")} });
   stage.show(${k("await new")} AvatarFactory().create(${str(s)}));
   stage.render();
 &lt;/script&gt;`,
-  react: (s) => `${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("zuri-avatar")};
+  react: (s) => `${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
 
 ${k("const")} zuri = ${k("new")} AvatarFactory();
 
@@ -467,7 +467,7 @@ ${k("export function")} Avatar({ seed = ${str(s)}, size = 48 }) {
 }`,
   vue: (s) => `&lt;script setup&gt;
 ${k("import")} { ref, watchEffect } ${k("from")} ${str("vue")};
-${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("zuri-avatar")};
+${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
 
 ${k("const")} props = defineProps({ seed: { default: ${str(s)} } });
 ${k("const")} src = ref();
@@ -476,7 +476,7 @@ watchEffect(${k("async")} () =&gt; (src.value = snapshotAvatar(${k("await")} zur
 &lt;/script&gt;
 
 &lt;template&gt;&lt;img :src="src" width="48" height="48" alt="" /&gt;&lt;/template&gt;`,
-  "three.js": (s) => `${k("import")} { AvatarFactory } ${k("from")} ${str("zuri-avatar")};
+  "three.js": (s) => `${k("import")} { AvatarFactory } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
 
 ${c("// meshed on a worker pool, returns a THREE.Group")}
 ${k("const")} avatar = ${k("await new")} AvatarFactory().create(${str(s)});

@@ -1,5 +1,5 @@
 /**
- * zuri-avatar: stylized 3D avatars generated entirely from code. The same seed always gives the same face.
+ * @brightkumedzro/zuri-avatar: stylized 3D avatars generated entirely from code. The same seed always gives the same face.
  *
  *   const stage = new AvatarStage({ canvas });
  *   stage.show(createAvatar("ada@example.com"));

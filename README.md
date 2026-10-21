@@ -4,7 +4,7 @@ A real face for every user. Zuri turns any string (user ID, email, name) into a 
 the spirit of Bitmoji or WhatsApp avatars. Same seed, same face, forever, and everything is generated from code.
 
 ```ts
-import { AvatarFactory, AvatarStage, snapshotAvatar } from "zuri-avatar";
+import { AvatarFactory, AvatarStage, snapshotAvatar } from "@brightkumedzro/zuri-avatar";
 
 const zuri = new AvatarFactory();                     // meshes on a Web Worker pool
 const avatar = await zuri.create("ada@example.com");  // THREE.Group
@@ -20,14 +20,14 @@ The same seed gives the same person in every style, because every style draws th
 | Style | Status | Output |
 |---|---|---|
 | Soft 3D (Memoji-like) | Shipped | Live three.js, PNG/WebP, .glb |
-| Flat 2D (vector illustration) | Shipped | SVG string, no DOM or WebGL (`zuri-avatar/flat`) |
+| Flat 2D (vector illustration) | Shipped | SVG string, no DOM or WebGL (`@brightkumedzro/zuri-avatar/flat`) |
 | Toon 3D (Pixar-like: exaggerated, sculpted hair) | Planned | A variant of the 3D engine |
 | Social 3D (Meta-like: natural proportions) | Planned | A variant of the 3D engine |
 | Full-body 3D (game and metaverse characters) | Planned | Needs bodies and rigging |
 | Realistic digital humans | Prototype | The v0 MakeHuman engine below |
 
 ```ts
-import { createFlatAvatar } from "zuri-avatar/flat";
+import { createFlatAvatar } from "@brightkumedzro/zuri-avatar/flat";
 
 const svg = createFlatAvatar("ada@example.com", { size: 256, shape: "circle" }); // ~4 KB, runs on servers too
 ```

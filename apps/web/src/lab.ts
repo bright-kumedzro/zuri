@@ -3,7 +3,7 @@
  * Builds every seed on the worker pool, tiles the renders, and optionally POSTs the sheet to :5199.
  */
 
-import { AvatarFactory, createFlatAvatar, disposeAvatar, flatAvatarDataURL, generateAvatar, snapshotAvatar, type AvatarOptions, type Framing } from "zuri-avatar";
+import { AvatarFactory, createFlatAvatar, disposeAvatar, flatAvatarDataURL, generateAvatar, snapshotAvatar, type AvatarOptions, type Framing } from "@brightkumedzro/zuri-avatar";
 
 const q = new URLSearchParams(location.search);
 const seeds = (q.get("seeds") ?? "ada,kwame,amara,lin,sofia,tunde,maya,obi").split(",");
