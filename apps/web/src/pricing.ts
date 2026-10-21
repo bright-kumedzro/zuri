@@ -9,7 +9,7 @@ export interface Currency {
 }
 
 export const CURRENCIES: Currency[] = [
-  { code: "USD", label: "US$ · USD", pro: 12, business: 49 },
+  { code: "USD", label: "$ · USD", pro: 12, business: 49 },
   { code: "EUR", label: "€ · EUR", pro: 11, business: 45 },
   { code: "GBP", label: "£ · GBP", pro: 10, business: 39 },
   { code: "NGN", label: "₦ · NGN", pro: 6500, business: 26000 },
@@ -37,7 +37,13 @@ export function detectCurrency(): string {
 }
 
 export function formatPrice(amount: number, code: string, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: "currency", currency: code, maximumFractionDigits: amount < 100 && amount % 1 ? 2 : 0 }).format(amount);
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: code,
+    // The local symbol ($, ₦, GH₵…) rather than "US$" or "GHS": the currency picker already names the currency.
+    currencyDisplay: "narrowSymbol",
+    maximumFractionDigits: amount < 100 && amount % 1 ? 2 : 0,
+  }).format(amount);
 }
 
 /** Yearly plans are 20% off, rounded to something that looks like a price. */
