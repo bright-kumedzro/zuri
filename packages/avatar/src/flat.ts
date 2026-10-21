@@ -6,7 +6,7 @@
  */
 
 import { Random } from "@zuri/core/random";
-import { generateAvatar, type AvatarOptions, type AvatarParams } from "./params.ts";
+import { generateAvatar, isHexColor, type AvatarOptions, type AvatarParams } from "./params.ts";
 
 export interface FlatOptions {
   /** Width and height in pixels. Default 256. The drawing is resolution-independent. */
@@ -350,8 +350,30 @@ function glasses(p: AvatarParams, g: Geo): string {
   return `<g fill="#ffffff" fill-opacity=".14" stroke="${c}" stroke-width="4.5">${lens(CX - ex)}${lens(CX + ex)}</g><path d="M${CX - ex + half} ${y - 2}Q${CX} ${y - 9} ${CX + ex - half} ${y - 2}M${CX - ex - half} ${y - 3}L${CX - g.W} ${y - 6}M${CX + ex + half} ${y - 3}L${CX + g.W} ${y - 6}" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`;
 }
 
+/**
+ * Params may come from anywhere (stored, edited, deserialized), and their values are written into SVG markup.
+ * Replace any colour that isn't `#rrggbb` and any number that isn't finite, so nothing can inject markup.
+ */
+function cleanParams(raw: AvatarParams): AvatarParams {
+  const ref = generateAvatar(String(raw.seed));
+  const walk = (v: unknown, fallback: unknown): unknown => {
+    if (typeof fallback === "string" && fallback.startsWith("#")) return isHexColor(v) ? v : fallback;
+    if (typeof fallback === "number") return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+    if (typeof fallback === "boolean") return typeof v === "boolean" ? v : fallback;
+    if (Array.isArray(fallback)) return Array.isArray(v) ? fallback.map((f, i) => walk(v[i], f)) : fallback;
+    if (fallback && typeof fallback === "object") {
+      const src = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+      return Object.fromEntries(Object.entries(fallback).map(([k, f]) => [k, walk(src[k], f)]));
+    }
+    // Enum-like strings (hair style, expression…) are only ever compared, never written out.
+    return typeof v === "string" ? v : fallback;
+  };
+  return walk(raw, ref) as AvatarParams;
+}
+
 /** Draw avatar params as an SVG string. */
-export function flatAvatarSVG(p: AvatarParams, options: FlatOptions = {}): string {
+export function flatAvatarSVG(raw: AvatarParams, options: FlatOptions = {}): string {
+  const p = cleanParams(raw);
   const id = "{{id}}";
   const g = geometry(p);
   const { W, mid } = g;
@@ -410,7 +432,7 @@ export function flatAvatarSVG(p: AvatarParams, options: FlatOptions = {}): strin
   // Trim long decimals, then give this drawing unique ids (identical drawings share ids, which is harmless).
   svg = svg.replace(/-?\d*\.\d{3,}/g, (m) => String(Number(Number(m).toFixed(2))));
   svg = svg.replaceAll(id, `z${hash(svg)}`);
-  const size = options.size ?? 256;
+  const size = Math.min(4096, Math.max(1, Math.round(Number(options.size)) || 256));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}">${svg}</svg>`;
 }
 

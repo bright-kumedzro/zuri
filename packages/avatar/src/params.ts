@@ -150,7 +150,28 @@ function blend(a: string, b: string, t: number): string {
   return `#${ch(16)}${ch(8)}${ch(0)}`;
 }
 
-export function generateAvatar(seed: string, options: AvatarOptions = {}): AvatarParams {
+/** `#rrggbb`. Anything else is rejected, so options can never smuggle markup into an SVG. */
+export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+
+const oneOf = <T extends string>(list: readonly T[], v: unknown): T | undefined => (list as readonly unknown[]).includes(v) ? (v as T) : undefined;
+
+/** Drop option values that aren't valid, so they fall back to the seed instead of breaking the drawing. */
+function validOptions(o: AvatarOptions): AvatarOptions {
+  return {
+    presentation: oneOf(["feminine", "masculine"], o.presentation),
+    expression: oneOf(EXPRESSION_LIST, o.expression),
+    hair: oneOf(HAIR_STYLE_LIST, o.hair),
+    skin: typeof o.skin === "number" ? (Number.isFinite(o.skin) ? o.skin : undefined) : isHexColor(o.skin) ? o.skin : undefined,
+    outfit: oneOf(OUTFIT_LIST, o.outfit),
+    glasses: oneOf(["none", "round", "square"], o.glasses),
+    facialHair: oneOf(["none", "stubble", "mustache", "goatee", "beard"], o.facialHair),
+    background: isHexColor(o.background) ? o.background : undefined,
+  };
+}
+
+export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): AvatarParams {
+  const options = validOptions(rawOptions);
+  seed = String(seed);
   const root = new Random(seed);
   const id = root.fork("identity");
   const shape = root.fork("shape");

@@ -3,10 +3,13 @@
 import { assembleAvatar, type Avatar } from "./build.ts";
 import { meshAvatar, type AvatarMeshes } from "./mesh.ts";
 import { generateAvatar, type AvatarOptions, type AvatarParams } from "./params.ts";
+import { spawnWorker } from "./spawn.ts";
 
 interface Pending {
   resolve: (m: AvatarMeshes) => void;
   reject: (e: Error) => void;
+  params: AvatarParams;
+  quality: number;
 }
 
 export interface FactoryOptions {
@@ -23,8 +26,29 @@ export class AvatarFactory {
     const cores = typeof navigator !== "undefined" ? navigator.hardwareConcurrency || 2 : 2;
     const count = typeof Worker === "undefined" ? 0 : options.workers ?? Math.max(1, Math.min(4, cores - 1));
     for (let i = 0; i < count; i++) {
-      const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+      let worker: Worker;
+      try {
+        worker = spawnWorker();
+      } catch {
+        break; // e.g. a Content-Security-Policy without worker-src blob: — mesh on the main thread instead
+      }
       const slot = { worker, load: 0 };
+      // A worker that fails to load drops out of the pool; its jobs finish on the main thread.
+      worker.onerror = (e) => {
+        e.preventDefault();
+        worker.terminate();
+        const index = this.pool.indexOf(slot);
+        if (index >= 0) this.pool.splice(index, 1);
+        for (const [id, job] of this.pending) {
+          if (job.slot !== slot) continue;
+          this.pending.delete(id);
+          try {
+            job.resolve(meshAvatar(job.params, job.quality));
+          } catch (err) {
+            job.reject(err as Error);
+          }
+        }
+      };
       worker.onmessage = (e: MessageEvent<{ id: number; meshes?: AvatarMeshes; error?: string }>) => {
         const job = this.pending.get(e.data.id);
         if (!job) return;
@@ -44,7 +68,7 @@ export class AvatarFactory {
     const id = this.nextId++;
     slot.load++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject, slot });
+      this.pending.set(id, { resolve, reject, slot, params, quality });
       slot.worker.postMessage({ id, params, quality });
     });
   }

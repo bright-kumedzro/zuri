@@ -13,7 +13,7 @@ const en = {
   "hero.lede": "Type any name, email or user ID and get a unique, expressive 3D avatar. Same input, same face, every time. Generated entirely from code: no uploads, no sign-up.",
   "hero.placeholder": "Type your name…",
   "hero.cta": "Make it yours →",
-  "hero.copy": "npm i @zuri/avatar",
+  "hero.copy": "npm i zuri-avatar",
   "hero.copied": "Copied",
   "trust.mit": "Open source (MIT)",
   "trust.signup": "No sign-up",

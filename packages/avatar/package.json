@@ -1,20 +1,46 @@
 {
-  "name": "@zuri/avatar",
+  "name": "zuri-avatar",
   "version": "0.1.0",
-  "description": "Stylized 3D avatars generated from any string. No assets, pure code.",
+  "description": "Deterministic avatars generated from any string: live 3D, PNG, .glb and flat SVG. No assets, pure code.",
   "license": "MIT",
+  "author": "Bright Kumedzro",
+  "homepage": "https://zuri-olive.vercel.app/docs",
+  "repository": { "type": "git", "url": "git+https://github.com/bright-kumedzro/zuri.git", "directory": "packages/avatar" },
+  "bugs": "https://github.com/bright-kumedzro/zuri/issues",
+  "keywords": ["avatar", "avatars", "3d", "three", "threejs", "svg", "identicon", "profile-picture", "deterministic", "memoji"],
   "type": "module",
+  "sideEffects": false,
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./params": "./src/params.ts",
     "./flat": "./src/flat.ts"
   },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/types/index.d.ts",
+    "exports": {
+      ".": { "types": "./dist/types/index.d.ts", "default": "./dist/index.js" },
+      "./params": { "types": "./dist/types/params.d.ts", "default": "./dist/params.js" },
+      "./flat": { "types": "./dist/types/flat.d.ts", "default": "./dist/flat.js" },
+      "./package.json": "./package.json"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
+    "build": "node build.mjs",
+    "prepublishOnly": "node build.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "peerDependencies": { "three": ">=0.170.0" },
-  "dependencies": { "@zuri/core": "workspace:*" },
-  "devDependencies": { "three": "^0.180.0", "@types/three": "^0.180.0", "@types/node": "^24.19.2", "typescript": "^5.9.0" }
+  "peerDependenciesMeta": { "three": { "optional": true } },
+  "devDependencies": {
+    "@zuri/core": "workspace:*",
+    "three": "^0.180.0",
+    "@types/three": "^0.180.0",
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.0"
+  }
 }

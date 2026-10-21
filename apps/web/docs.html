@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Docs · Zuri</title>
-    <meta name="description" content="How to install and use @zuri/avatar: create deterministic 3D avatars, render PNGs, export .glb files and customise every trait." />
+    <meta name="description" content="How to install and use zuri-avatar: create deterministic 3D avatars, render PNGs, export .glb files and customise every trait." />
     <meta name="theme-color" content="#0a0a0b" />
     <link rel="icon" href="/avatars/amara.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -67,7 +67,7 @@
             <h2>Docs</h2>
             <h1 class="doc-title">Using Zuri</h1>
             <p class="lead">
-              <code>@zuri/avatar</code> turns any string (a user ID, an email, a name) into a unique 3D avatar. The same
+              <code>zuri-avatar</code> turns any string (a user ID, an email, a name) into a unique 3D avatar. The same
               string always gives the same face, so there is nothing to upload, store or sync. Everything is generated
               from code in the browser with <a href="https://threejs.org" target="_blank" rel="noreferrer">three.js</a>.
             </p>
@@ -82,12 +82,13 @@
 
           <section id="install">
             <h3>Install</h3>
-            <p>Install the package and its peer dependency, three.js (version 0.170 or newer):</p>
-            <pre><code>npm i @zuri/avatar three</code></pre>
+            <p>For 3D, install the package with three.js (version 0.170 or newer):</p>
+            <pre><code>npm i zuri-avatar three</code></pre>
+            <p>For <a href="#flat">flat 2D</a> avatars only, you don't need three.js:</p>
+            <pre><code>npm i zuri-avatar</code></pre>
             <p>
-              The package ships ES modules and uses Web Workers, so use a bundler that understands
-              <code>new Worker(new URL(..., import.meta.url))</code>. Vite, webpack 5, Rollup, esbuild, Parcel and
-              Next.js all do.
+              The package ships ES modules with TypeScript types. The 3D mesher runs in Web Workers that are built into
+              the package, so there is nothing to configure in Vite, webpack, Next.js or any other bundler.
             </p>
           </section>
 
@@ -97,7 +98,7 @@
             <pre><code>&lt;canvas id="avatar" width="256" height="256"&gt;&lt;/canvas&gt;
 
 &lt;script type="module"&gt;
-  <span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+  <span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
   <span class="k">const</span> stage = <span class="k">new</span> AvatarStage({ canvas: document.getElementById(<span class="s">"avatar"</span>), transparent: <span class="k">true</span> });
   stage.setSize(<span class="s">256</span>, <span class="s">256</span>);
@@ -105,7 +106,7 @@
   stage.render();
 &lt;/script&gt;</code></pre>
             <p>Or get an image you can put in any <code>&lt;img&gt;</code>:</p>
-            <pre><code><span class="k">import</span> { AvatarFactory, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+            <pre><code><span class="k">import</span> { AvatarFactory, snapshotAvatar } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
 <span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id);
@@ -118,7 +119,7 @@ img.src = snapshotAvatar(avatar, { size: <span class="s">256</span> });</code></
               <code>AvatarStage</code> is a ready-lit scene with a camera that frames the avatar. Give it a canvas, size
               it, show an avatar and call <code>render</code> every frame to animate the idle blinks and sway.
             </p>
-            <pre><code><span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+            <pre><code><span class="k">import</span> { AvatarFactory, AvatarStage } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> canvas = document.querySelector(<span class="s">"canvas"</span>);
 <span class="k">const</span> stage = <span class="k">new</span> AvatarStage({ canvas, transparent: <span class="k">true</span> });
@@ -148,7 +149,7 @@ requestAnimationFrame(loop);</code></pre>
               <code>snapshotAvatar</code> renders an avatar facing forward with its eyes open and returns a data URL.
               All snapshots share one offscreen renderer, so taking many is cheap.
             </p>
-            <pre><code><span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+            <pre><code><span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
 
@@ -175,7 +176,7 @@ requestAnimationFrame(loop);</code></pre>
               shoulders to hair, with the head near the origin, facing +Z. Your scene needs lights; <code>MeshPhysicalMaterial</code> looks best
               with an environment map.
             </p>
-            <pre><code><span class="k">import</span> { AvatarFactory } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+            <pre><code><span class="k">import</span> { AvatarFactory } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> avatar = <span class="k">await new</span> AvatarFactory().create(<span class="s">"ada"</span>);
 avatar.position.set(<span class="s">0</span>, <span class="s">1.5</span>, <span class="s">0</span>);
@@ -225,9 +226,9 @@ renderer.setAnimationLoop((ms) =&gt; {
             <p>
               The flat style draws the same traits (skin tone, hair, outfit, expression, glasses and so on) as a vector
               illustration. It returns an SVG string of about 4&nbsp;KB, runs anywhere JavaScript does, and doesn't need
-              three.js. Import it from <code>@zuri/avatar/flat</code> to keep three.js out of your bundle.
+              three.js. Import it from <code>zuri-avatar/flat</code> to keep three.js out of your bundle.
             </p>
-            <pre><code><span class="k">import</span> { createFlatAvatar, flatAvatarDataURL } <span class="k">from</span> <span class="s">"@zuri/avatar/flat"</span>;
+            <pre><code><span class="k">import</span> { createFlatAvatar, flatAvatarDataURL } <span class="k">from</span> <span class="s">"zuri-avatar/flat"</span>;
 
 <span class="k">const</span> svg = createFlatAvatar(user.id, { size: <span class="s">96</span>, shape: <span class="s">"circle"</span> });
 img.src = flatAvatarDataURL(svg);              <span class="c">// or insert the SVG markup directly</span></code></pre>
@@ -256,7 +257,7 @@ app.get(<span class="s">"/avatars/:id.svg"</span>, (req, res) =&gt; {
             </p>
             <p class="label">React</p>
             <pre><code><span class="k">import</span> { useEffect, useState } <span class="k">from</span> <span class="s">"react"</span>;
-<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
 
@@ -275,7 +276,7 @@ app.get(<span class="s">"/avatars/:id.svg"</span>, (req, res) =&gt; {
             <p class="label">Vue</p>
             <pre><code>&lt;script setup&gt;
 <span class="k">import</span> { ref, watchEffect } <span class="k">from</span> <span class="s">"vue"</span>;
-<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"zuri-avatar"</span>;
 
 <span class="k">const</span> props = defineProps({ seed: String, size: { type: Number, default: <span class="s">48</span> } });
 <span class="k">const</span> src = ref();
@@ -389,7 +390,7 @@ watchEffect(<span class="k">async</span> () =&gt; {
               on) without building anything. It needs no WebGL, so it also runs on a server. Useful for showing trait
               names, or for editing a field and passing the result to <code>factory.build(params)</code>.
             </p>
-            <pre><code><span class="k">import</span> { generateAvatar } <span class="k">from</span> <span class="s">"@zuri/avatar/params"</span>;
+            <pre><code><span class="k">import</span> { generateAvatar } <span class="k">from</span> <span class="s">"zuri-avatar/params"</span>;
 
 generateAvatar(<span class="s">"ada"</span>).hair.style;              <span class="c">// e.g. "curly"</span></code></pre>
           </section>
@@ -497,10 +498,10 @@ https://api.zuri.dev/avatar/{seed}.glb</code></pre>
               <dd>Call <code>stage.setSize()</code> with non-zero values, then <code>stage.render()</code>. Nothing draws until you render.</dd>
               <dt>The avatar looks black in my own scene.</dt>
               <dd>Add lights, or an environment map such as three.js's <code>RoomEnvironment</code>. <code>AvatarStage</code> sets these up for you.</dd>
-              <dt>"Failed to construct 'Worker'" or a 404 for worker.ts.</dt>
-              <dd>Your bundler isn't handling the worker. Use one of the bundlers above, or pass <code>{ workers: 0 }</code> to <code>AvatarFactory</code>.</dd>
+              <dt>Avatars build slowly, or the console mentions a Content Security Policy.</dt>
+              <dd>The workers start from a <code>blob:</code> URL. If your CSP blocks that, Zuri falls back to the main thread, which works but can stutter. Add <code>worker-src blob:</code> to your policy to keep the workers.</dd>
               <dt>"window is not defined" or "document is not defined".</dt>
-              <dd>The code ran on the server. Only build and render 3D avatars in the browser. <code>generateAvatar</code> and the flat style (<code>@zuri/avatar/flat</code>) work anywhere.</dd>
+              <dd>The code ran on the server. Only build and render 3D avatars in the browser. <code>generateAvatar</code> and the flat style (<code>zuri-avatar/flat</code>) work anywhere.</dd>
               <dt>The browser warns about too many WebGL contexts.</dt>
               <dd>Use images for lists, keep live stages to a few, and call <code>stage.dispose()</code> when you remove one.</dd>
             </dl>
