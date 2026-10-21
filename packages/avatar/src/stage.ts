@@ -3,6 +3,7 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { buildAvatar, disposeAvatar, type Avatar, type BuildOptions } from "./build.ts";
+import type { AvatarStyle } from "./head.ts";
 import { generateAvatar, type AvatarOptions } from "./params.ts";
 import { BODY_BOTTOM } from "./head.ts";
 
@@ -24,6 +25,7 @@ export class AvatarStage {
   avatar: Avatar | null = null;
   framing: Framing = "bust";
   private readonly transparent: boolean;
+  private readonly lights: { hemi: THREE.HemisphereLight; key: THREE.DirectionalLight; fill: THREE.DirectionalLight; rim: THREE.DirectionalLight };
 
   constructor(options: StageOptions = {}) {
     this.transparent = options.transparent ?? false;
@@ -45,7 +47,8 @@ export class AvatarStage {
     this.scene.environmentIntensity = 0.45;
     pmrem.dispose();
 
-    this.scene.add(new THREE.HemisphereLight(0xfff4ea, 0x6d625c, 1.0));
+    const hemi = new THREE.HemisphereLight(0xfff4ea, 0x6d625c, 1.0);
+    this.scene.add(hemi);
     const key = new THREE.DirectionalLight(0xfff0e4, 2.3);
     key.position.set(-2.5, 3.2, 5);
     key.castShadow = true;
@@ -60,6 +63,20 @@ export class AvatarStage {
     const rim = new THREE.DirectionalLight(0xffffff, 1.6);
     rim.position.set(2.5, 3, -4);
     this.scene.add(key, fill, rim);
+    this.lights = { hemi, key, fill, rim };
+  }
+
+  /** Studio lighting per style: toon gets a warmer key, a cooler fill, a stronger rim and softer shadows. */
+  light(style: AvatarStyle) {
+    const { hemi, key, fill, rim } = this.lights;
+    const toon = style === "toon";
+    hemi.intensity = toon ? 1.1 : 1.0;
+    key.color.set(toon ? 0xffe9d6 : 0xfff0e4);
+    key.intensity = toon ? 2.5 : 2.3;
+    key.shadow.radius = toon ? 9 : 4;
+    fill.color.set(toon ? 0xd8e4ff : 0xe6eeff);
+    fill.intensity = toon ? 0.85 : 0.7;
+    rim.intensity = toon ? 2.4 : 1.6;
   }
 
   setSize(width: number, height: number) {
@@ -75,6 +92,7 @@ export class AvatarStage {
       disposeAvatar(this.avatar);
     }
     this.avatar = avatar;
+    this.light(avatar.userData.style);
     this.scene.add(avatar);
     this.scene.background = this.transparent ? null : new THREE.Color(avatar.userData.params.background);
     this.frame(this.framing);
@@ -129,6 +147,7 @@ export function snapshotAvatar(avatar: Avatar, options: SnapshotOptions = {}): s
   const size = options.size ?? 256;
   // Borrow the avatar without taking ownership.
   stage.avatar = avatar;
+  stage.light(avatar.userData.style);
   stage.scene.add(avatar);
   stage.scene.background = transparent ? null : new THREE.Color(avatar.userData.params.background);
   stage.framing = options.framing ?? "bust";

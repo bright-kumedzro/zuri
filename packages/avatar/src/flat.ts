@@ -252,6 +252,15 @@ function outfit(p: AvatarParams, g: Geo, id: string): { behind: string; body: st
     case "tank":
       body += `<path d="M188 389C204 444 308 444 324 389" fill="none" stroke="${shade}" stroke-width="5"/>`;
       break;
+    case "suit": {
+      // White shirt in a deep V, collar points, a tie in the accent colour, then lapels over the top.
+      const tie = mix(accent, "#000000", 0.25);
+      body += `<path d="M${CX - 58} ${s - 5}L${CX} ${s + 140}L${CX + 58} ${s - 5}Z" fill="#f4f1ea"/>`;
+      body += `<path d="M${CX - 16} ${s + 22}L${CX - 20} ${s + 120}L${CX} ${s + 140}L${CX + 20} ${s + 120}L${CX + 16} ${s + 22}Z" fill="${accent}"/><path d="M${CX - 13} ${s + 6}H${CX + 13}L${CX + 16} ${s + 24}H${CX - 16}Z" fill="${tie}"/>`;
+      body += `<path d="M${CX - 40} ${s - 8}L${CX - 6} ${s + 8}L${CX - 22} ${s + 34}ZM${CX + 40} ${s - 8}L${CX + 6} ${s + 8}L${CX + 22} ${s + 34}Z" fill="#ffffff" stroke="#d9d3c7" stroke-width="2" stroke-linejoin="round"/>`;
+      body += `<path d="M${CX - 60} ${s - 8}L${CX - 34} ${s + 56}L${CX - 54} ${s + 62}L${CX - 6} ${s + 150}L${CX - 6} 512L${CX - 100} 512L${CX - 100} ${s + 10}ZM${CX + 60} ${s - 8}L${CX + 34} ${s + 56}L${CX + 54} ${s + 62}L${CX + 6} ${s + 150}L${CX + 6} 512L${CX + 100} 512L${CX + 100} ${s + 10}Z" fill="${shade}" opacity=".6"/><circle cx="${CX}" cy="${s + 162}" r="5" fill="${shade}"/>`;
+      break;
+    }
   }
   return { behind, body };
 }

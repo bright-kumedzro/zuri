@@ -8,7 +8,8 @@ export type HairStyle =
   | "none" | "buzz" | "crop" | "fade" | "hightop" | "afro" | "puffs" | "bun" | "locs"
   | "braids" | "cornrows" | "long" | "bob" | "ponytail" | "curly" | "headwrap";
 export type FacialHair = "none" | "stubble" | "mustache" | "goatee" | "beard";
-export type Outfit = "tee" | "vneck" | "hoodie" | "shirt" | "turtleneck" | "blazer" | "tank";
+/** "suit" is opt-in only: it's never picked at random, so adding it changed no existing seed. */
+export type Outfit = "tee" | "vneck" | "hoodie" | "shirt" | "turtleneck" | "blazer" | "tank" | "suit";
 export type Expression = "neutral" | "smile" | "grin" | "laugh" | "surprised" | "wink" | "smirk";
 export type Glasses = "none" | "round" | "square";
 export type Earrings = "none" | "studs" | "hoops";
@@ -130,7 +131,7 @@ export const HAIR_STYLE_LIST = [
   "braids", "cornrows", "long", "bob", "ponytail", "curly", "headwrap",
 ] as const satisfies readonly HairStyle[];
 export const EXPRESSION_LIST = ["neutral", "smile", "grin", "laugh", "surprised", "wink", "smirk"] as const satisfies readonly Expression[];
-export const OUTFIT_LIST = ["tee", "vneck", "hoodie", "shirt", "turtleneck", "blazer", "tank"] as const satisfies readonly Outfit[];
+export const OUTFIT_LIST = ["tee", "vneck", "hoodie", "shirt", "turtleneck", "blazer", "tank", "suit"] as const satisfies readonly Outfit[];
 
 function darken(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);

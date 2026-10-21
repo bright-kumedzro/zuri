@@ -9,7 +9,7 @@ import { polygonize, type RawMesh } from "./mesher.ts";
 import { FACE_UV } from "./face.ts";
 import { buildBrows, buildFacialHair, buildHair } from "./hair.ts";
 import { buildOutfit } from "./outfit.ts";
-import { noise3 } from "./sdf.ts";
+import { noise3, type SDF } from "./sdf.ts";
 
 export interface PartMesh extends RawMesh {
   colors?: Float32Array;
@@ -58,6 +58,38 @@ function smoothColors(indices: Uint32Array, colors: Float32Array, iterations: nu
       colors[i * 3] = sum[i * 3]! / cnt[i]!; colors[i * 3 + 1] = sum[i * 3 + 1]! / cnt[i]!; colors[i * 3 + 2] = sum[i * 3 + 2]! / cnt[i]!;
     }
   }
+}
+
+/**
+ * Ambient occlusion baked per vertex from the distance fields: step out along the normal and see how close the
+ * rest of the avatar is. Creases (under hair, inside collars, around the nose) come out darker, which gives the
+ * soft, rich shading of an offline render at no runtime cost. Returns a 0..1 multiplier per vertex.
+ */
+function bakeAO(m: RawMesh, scene: SDF): Float32Array {
+  const n = m.positions.length / 3;
+  const ao = new Float32Array(n);
+  const steps = [0.03, 0.07, 0.12, 0.19, 0.28];
+  for (let i = 0; i < n; i++) {
+    const px = m.positions[i * 3]!, py = m.positions[i * 3 + 1]!, pz = m.positions[i * 3 + 2]!;
+    const nx = m.normals[i * 3]!, ny = m.normals[i * 3 + 1]!, nz = m.normals[i * 3 + 2]!;
+    let occ = 0, weight = 1;
+    for (const h of steps) {
+      occ += Math.max(0, h - scene(px + nx * h, py + ny * h, pz + nz * h)) * weight;
+      weight *= 0.72;
+    }
+    const v = Math.min(1, Math.max(0, 1 - 2.6 * occ));
+    ao[i] = 0.42 + 0.58 * v * v * (3 - 2 * v);
+  }
+  return ao;
+}
+
+/** Multiply vertex colors (or plain white) by baked occlusion. */
+function shadeAO(colors: Float32Array | undefined, ao: Float32Array): Float32Array {
+  const out = colors ?? new Float32Array(ao.length * 3).fill(1);
+  for (let i = 0; i < ao.length; i++) {
+    out[i * 3]! *= ao[i]!; out[i * 3 + 1]! *= ao[i]!; out[i * 3 + 2]! *= ao[i]!;
+  }
+  return out;
 }
 
 /** Front-planar UVs for the painted face; back-facing vertices sample the plain skin border. */
@@ -126,7 +158,10 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
 
   const outfitShape = buildOutfit(p, rig);
   const outfitRaw = polygonize(outfitShape.sdf, outfitShape.box, outfitShape.cell / quality);
-  const palette = [linearRGB(p.outfit.color), linearRGB(p.outfit.accent), linearRGB("#f4f1ea")];
+  const main = linearRGB(p.outfit.color);
+  // Suits read as formal in deep tones, so the jacket is a darker shade of the person's outfit color.
+  const jacket = p.outfit.style === "suit" ? (main.map((c) => c * 0.32) as [number, number, number]) : main;
+  const palette = [jacket, linearRGB(p.outfit.accent), linearRGB("#f4f1ea")];
   const n = outfitRaw.positions.length / 3;
   const outfitColors = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
@@ -136,6 +171,7 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
   smoothColors(outfitRaw.indices, outfitColors, 2);
 
   let brows: PartMesh | null = null;
+  const outfit: PartMesh = { ...outfitRaw, colors: outfitColors };
   if (toon) {
     const shape = buildBrows(p, rig);
     const raw = polygonize(shape.sdf, shape.box, shape.cell / quality);
@@ -143,9 +179,20 @@ export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "s
     const colors = new Float32Array(raw.positions.length);
     for (let i = 0; i < colors.length; i += 3) colors.set(base, i);
     brows = { ...raw, colors };
+
+    // Bake contact shadows across every part, so hair shades the forehead and collars shade the neck.
+    const parts: SDF[] = [rig.body, outfitShape.sdf];
+    if (hairShape) parts.push(hairShape.sdf);
+    if (beardShape) parts.push(beardShape.sdf);
+    const scene: SDF = (x, y, z) => {
+      let d = Infinity;
+      for (const f of parts) d = Math.min(d, f(x, y, z));
+      return d;
+    };
+    for (const part of [body, hair, facialHair, outfit]) if (part) part.colors = shadeAO(part.colors, bakeAO(part, scene));
   }
 
-  return { style, body, hair, facialHair, outfit: { ...outfitRaw, colors: outfitColors }, brows, top };
+  return { style, body, hair, facialHair, outfit, brows, top };
 }
 
 /** Every typed array in the result, for zero-copy postMessage. */

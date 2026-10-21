@@ -36,9 +36,10 @@ function skinMaterial(p: AvatarParams, toon: boolean, map?: THREE.Texture): THRE
     specularIntensity: toon ? 0.45 : 0.35,
     clearcoat: toon ? 0.22 : 0,
     clearcoatRoughness: 0.45,
-    sheen: toon ? 0.35 : 0.5,
-    sheenRoughness: 0.5,
-    sheenColor: linear(p.skin).lerp(new THREE.Color(1, 0.85, 0.8), 0.35),
+    // Toon: a warm, reddish sheen at grazing angles fakes light passing through skin (ears, nose, cheeks).
+    sheen: toon ? 0.7 : 0.5,
+    sheenRoughness: toon ? 0.38 : 0.5,
+    sheenColor: toon ? linear(p.skin).lerp(new THREE.Color(1, 0.42, 0.32), 0.55) : linear(p.skin).lerp(new THREE.Color(1, 0.85, 0.8), 0.35),
   });
 }
 
@@ -244,6 +245,7 @@ export interface Avatar extends THREE.Group {
     tick: (t: number) => void;
     /** Top of the hair, for framing. */
     top: number;
+    style: AvatarStyle;
   };
 }
 
@@ -263,12 +265,17 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
   const faceTex = new THREE.CanvasTexture(paintFace(p, rig) as HTMLCanvasElement);
   faceTex.colorSpace = THREE.SRGBColorSpace;
   faceTex.anisotropy = 4;
-  const body = new THREE.Mesh(geometry(data.body), skinMaterial(p, toon, faceTex));
+  const skin = skinMaterial(p, toon, faceTex);
+  // Toon bodies carry baked occlusion as vertex colors, multiplied over the painted face.
+  skin.vertexColors = !!data.body.colors;
+  const body = new THREE.Mesh(geometry(data.body), skin);
   body.name = "skin";
   meshes.push(body);
 
   const eyeMat = new THREE.MeshPhysicalMaterial({ map: eyeTexture(p.eyes.color, toon), roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.04 });
   const lidMat = skinMaterial(p, toon);
+  // Toon faces are darkened by baked occlusion around the eyes; match the lids so they don't ring the eyes.
+  if (toon) lidMat.color.multiplyScalar(0.84);
   const eyes = ([1, -1] as const).map((s) => buildEye(p, rig, s, eyeMat, lidMat));
   for (const e of eyes) group.add(e.group);
 
@@ -331,6 +338,7 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
   group.userData = {
     params: p,
     top: data.top,
+    style,
     tick: (t: number) => {
       const k = ((t + phase) % period) / 0.16;
       const blink = p.expression === "laugh" ? 0 : k < 1 ? Math.sin(k * Math.PI) : 0;
