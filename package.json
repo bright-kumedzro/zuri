@@ -1,0 +1,13 @@
+{
+  "name": "zuri",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "python -P -E tools/compile_assets.py ../zuri-vendor/mh/makehuman/data ../zuri-vendor/sys assets/build",
+    "dev": "pnpm --filter @zuri/web dev",
+    "dev:viewer": "pnpm --filter @zuri/viewer dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}

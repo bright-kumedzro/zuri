@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zuri. A 3D face for every user.</title>
+    <meta name="description" content="Deterministic 3D avatars generated entirely from code. Pass any string, get a live 3D bust, a PNG or a .glb." />
+    <link rel="icon" href="/avatars/amara.webp" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <nav class="top">
+        <a class="brand" href="#"><img src="/avatars/amara.webp" alt="" /><span>zuri</span></a>
+        <div class="links">
+          <a href="#install">docs</a>
+          <a href="#pricing">pricing</a>
+          <a href="https://github.com/" target="_blank" rel="noreferrer">github</a>
+        </div>
+      </nav>
+
+      <header class="hero">
+        <div class="hero-copy">
+          <h1>A 3D face for <em>every user.</em></h1>
+          <p class="lede">
+            Deterministic 3D avatars, generated entirely from code. Pass any string (user id, email, UUID) and get a
+            live 3D bust, a PNG or a .glb. Same seed, same face. Nothing to download.
+          </p>
+          <div class="hero-ctas">
+            <a class="primary" href="#install">Install Zuri →</a>
+            <a class="secondary" href="#pricing">See pricing →</a>
+            <button class="tertiary" id="dl-glb">Download .glb</button>
+          </div>
+        </div>
+        <div class="stage">
+          <div class="stage-tile">
+            <canvas id="stage"></canvas>
+            <div class="spinner" id="loading"></div>
+          </div>
+          <div class="stage-bar">
+            <label class="stage-seed"><span>seed</span><input id="hero-seed" spellcheck="false" autocomplete="off" /></label>
+            <button class="stage-png" id="dl-png" title="Download PNG">png</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="cast-section" aria-label="Example avatars">
+        <div class="cast-grid" id="cast"></div>
+      </section>
+
+      <section class="install-section" id="install">
+        <p class="blurb"><span>Change the user id, switch frameworks, copy the snippet.</span></p>
+        <div class="playground">
+          <div class="editor-card">
+            <div class="editor-head" id="tabs"></div>
+            <label class="seed-bar"><span>seed</span><input id="seed" spellcheck="false" autocomplete="off" /></label>
+            <pre class="editor-body"><code id="code"></code></pre>
+            <div class="editor-foot">
+              <span>npm i @zuri/avatar three</span>
+              <button id="copy">copy</button>
+            </div>
+          </div>
+          <div class="preview-card">
+            <div class="pv profile">
+              <img data-avatar alt="" />
+              <div><b data-name></b><small>member</small></div>
+              <span class="pill">follow</span>
+            </div>
+            <div class="pv comment">
+              <img data-avatar alt="" />
+              <p><b data-name></b> shipped v0.8. Smooth deploy, zero rollbacks.</p>
+            </div>
+            <div class="pv team">
+              <div class="stack" id="stack"></div>
+              <small>design · 5 members</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pricing-section" id="pricing">
+        <h2>pricing</h2>
+        <p class="blurb"><span>Free and open source in your bundle. Pay only for the hosted API.</span></p>
+        <div class="plans">
+          <article class="plan">
+            <h3>Open source</h3>
+            <div class="price">$0</div>
+            <ul>
+              <li>MIT library, unlimited client renders</li>
+              <li>Live 3D, PNG and .glb in the browser</li>
+              <li>All standard styles</li>
+            </ul>
+            <a class="secondary" href="#install">Install →</a>
+          </article>
+          <article class="plan featured">
+            <h3>Pro</h3>
+            <div class="price">$12<small>/mo</small></div>
+            <ul>
+              <li>Hosted API, 100k renders / month</li>
+              <li>PNG &amp; WebP up to 1024px, CDN cached</li>
+              <li>.glb endpoint, premium style packs</li>
+              <li>No attribution</li>
+            </ul>
+            <a class="primary" href="mailto:hello@zuri.dev?subject=Zuri%20Pro">Start free trial →</a>
+          </article>
+          <article class="plan">
+            <h3>Business</h3>
+            <div class="price">$49<small>/mo</small></div>
+            <ul>
+              <li>1M renders / month</li>
+              <li>Brand palettes &amp; custom backgrounds</li>
+              <li>Animated stickers, team seats, SLA</li>
+            </ul>
+            <a class="secondary" href="mailto:hello@zuri.dev?subject=Zuri%20Business">Contact →</a>
+          </article>
+        </div>
+        <p class="fine">Need self-hosting or custom styles? <a href="mailto:hello@zuri.dev?subject=Zuri%20Enterprise">Talk to us</a>.</p>
+      </section>
+
+      <footer class="bottom">
+        <div>zuri · deterministic 3D avatars · MIT</div>
+        <div class="foot-links">
+          <a href="#install">docs</a>
+          <a href="#pricing">pricing</a>
+          <a href="https://github.com/" target="_blank" rel="noreferrer">github</a>
+          <a href="mailto:hello@zuri.dev">contact</a>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

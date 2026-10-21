@@ -1,0 +1,20 @@
+{
+  "name": "@zuri/core",
+  "version": "0.1.0",
+  "description": "Deterministic realistic human generator: seed in, character out.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./random": "./src/random.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.0"
+  }
+}

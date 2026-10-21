@@ -1,0 +1,19 @@
+{
+  "name": "@zuri/avatar",
+  "version": "0.1.0",
+  "description": "Stylized 3D avatars generated from any string. No assets, pure code.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./params": "./src/params.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "peerDependencies": { "three": ">=0.170.0" },
+  "dependencies": { "@zuri/core": "workspace:*" },
+  "devDependencies": { "three": "^0.180.0", "@types/three": "^0.180.0", "@types/node": "^24.19.2", "typescript": "^5.9.0" }
+}

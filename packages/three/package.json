@@ -1,0 +1,13 @@
+{
+  "name": "@zuri/three",
+  "version": "0.1.0",
+  "description": "Three.js renderer for Zuri characters.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit -p ." },
+  "peerDependencies": { "three": ">=0.170.0" },
+  "dependencies": { "@zuri/core": "workspace:*" },
+  "devDependencies": { "three": "^0.180.0", "@types/three": "^0.180.0", "typescript": "^5.9.0" }
+}
