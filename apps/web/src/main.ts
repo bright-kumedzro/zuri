@@ -6,6 +6,7 @@ import {
   BACKGROUNDS,
   CLOTH_COLORS,
   EXPRESSION_LIST,
+  FACE_SHAPE_LIST,
   HAIR_STYLE_LIST,
   SKIN_TONES,
   WARDROBE,
@@ -410,6 +411,7 @@ function buildControls() {
   for (const c of controls.splice(0)) c.el.remove();
   segmented("builder.look", "look", () => [{ value: undefined, label: t("opt.3d") }, { value: "toon", label: t("opt.toon") }, { value: "flat", label: t("opt.flat") }], true);
   segmented("builder.style", "presentation", () => [auto(), { value: "feminine", label: t("opt.feminine") }, { value: "masculine", label: t("opt.masculine") }]);
+  segmented("builder.faceShape", "faceShape", () => [auto(), ...FACE_SHAPE_LIST.map((f) => ({ value: f, label: t(`shape.${f}` as Key) }))], true);
   segmented("builder.glasses", "glasses", () => [auto(), { value: "none", label: t("opt.none") }, { value: "round", label: t("opt.round") }, { value: "square", label: t("opt.square") }]);
   swatches(
     "builder.skin",

@@ -46,7 +46,9 @@ seed ─► params (skin, face shape, eyes, hair, outfit, expression…) ─► 
 - **Painted details.** Brows, mouths (7 expressions), blush, freckles and stubble are drawn on a canvas and
   projected onto the face. Eyes are real spheres with lids that blink.
 - **Deterministic.** `Random` (sfc32 + cyrb128) is seeded from the string, and every trait group uses its own
-  forked stream. `params.version` is bumped when a change alters existing faces.
+  forked stream. `params.version` is bumped when a change alters existing faces (v2: face shapes).
+- **Real face shapes.** Each face is built on one of six archetypes (oval, round, square, heart, long, diamond)
+  with its own variation in jaw, chin, cheekbones, forehead, face length and eye and nose placement.
 - **Inclusive by design.** There are 14 skin tones. Hair texture is correlated with skin tone but every
   combination stays possible: coils, locs, braids, cornrows, puffs, afro, high-top and headwraps.
 

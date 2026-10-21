@@ -68,3 +68,18 @@ test("wardrobe: every garment and accessory builds, colors and opt-in rules hold
   const random = new Set(WARDROBE.filter((g) => "random" in g && g.random).map((g) => g.id as string));
   for (let i = 0; i < 300; i++) assert.ok(random.has(generateAvatar(`r${i}`).outfit.style));
 });
+
+test("face shapes: varied by seed, settable, and actually different geometry", async () => {
+  const { FACE_SHAPE_LIST } = await import("../src/params.ts");
+  const seen = new Set<string>();
+  for (let i = 0; i < 200; i++) seen.add(generateAvatar(`shape-${i}`).face.shape);
+  assert.equal(seen.size, FACE_SHAPE_LIST.length);
+  const width = (faceShape: (typeof FACE_SHAPE_LIST)[number]) => {
+    const m = meshAvatar(generateAvatar("same", { faceShape, hair: "none" }), 0.4);
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < m.body.positions.length; i += 3) if (m.body.positions[i + 1]! > -0.6 && m.body.positions[i + 1]! < -0.4) { lo = Math.min(lo, m.body.positions[i]!); hi = Math.max(hi, m.body.positions[i]!); }
+    return hi - lo;
+  };
+  // A round face is clearly wider at the mouth than a long one.
+  assert.ok(width("round") > width("long") * 1.12, `${width("round")} vs ${width("long")}`);
+});

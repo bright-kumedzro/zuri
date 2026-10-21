@@ -386,7 +386,7 @@ export function buildFacialHair(p: AvatarParams, rig: Rig): HairShape | null {
   if (kind === "mustache") sdf = (x, y, z) => smax(mustache(x, y, z), -(y - my - 0.13), 0.02);
   else if (kind === "goatee")
     sdf = (x, y, z) => {
-      let d = smax(rig.face(x, y, z) - 0.06 - tex(x, y, z), ellipsoid(x, y + 0.82, z - 0.4, 0.26, 0.32, 0.6), 0.04);
+      let d = smax(rig.face(x, y, z) - 0.06 - tex(x, y, z), ellipsoid(x, y - my + 0.29, z - 0.4, 0.26, 0.32, 0.6), 0.04);
       d = smax(d, -mouthHole(x, y, z), 0.03);
       return smin(d, mustache(x, y, z), 0.04);
     };
@@ -394,12 +394,12 @@ export function buildFacialHair(p: AvatarParams, rig: Rig): HairShape | null {
     sdf = (x, y, z) => {
       // Covers the jaw below the cheekbones, in front of the ears.
       // Below the cheekbones, in front of the ears, thickest at the chin.
-      const region = Math.max(y + 0.5 + 0.12 * Math.abs(x) - 0.25 * x * x, -z - 0.05 + (y < -0.85 ? -1 : 0), Math.abs(x) - 0.84);
+      const region = Math.max(y - my - 0.03 + 0.12 * Math.abs(x) - 0.25 * x * x, -z - 0.05 + (y < my - 0.32 ? -1 : 0), Math.abs(x) - 0.84);
       // Thin at the cheek line, fuller at the chin.
-      const t = 0.015 + 0.07 * Math.min(1, Math.max(0, -(y + 0.5) / 0.45));
+      const t = 0.015 + 0.07 * Math.min(1, Math.max(0, (my + 0.03 - y) / 0.45));
       let d = smax(rig.face(x, y, z) - t - tex(x, y, z) * 0.6, region, 0.06);
       d = smax(d, -mouthHole(x, y, z), 0.04);
       return smin(d, mustache(x, y, z), 0.05);
     };
-  return { sdf, box: { min: [-1.1, -1.35, -0.6], max: [1.1, -0.1, 1.35] }, cell: 0.024 };
+  return { sdf, box: { min: [-1.15, -1.6, -0.6], max: [1.15, -0.1, 1.35] }, cell: 0.024 };
 }

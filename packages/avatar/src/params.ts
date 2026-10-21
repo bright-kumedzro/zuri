@@ -13,21 +13,44 @@ export type HairStyle =
 export type FacialHair = "none" | "stubble" | "mustache" | "goatee" | "beard";
 export type Expression = "neutral" | "smile" | "grin" | "laugh" | "surprised" | "wink" | "smirk";
 export type Glasses = "none" | "round" | "square";
+/** The underlying head shape; every face then varies around its archetype. */
+export type FaceShape = "oval" | "round" | "square" | "heart" | "long" | "diamond";
 export type Earrings = "none" | "studs" | "hoops";
 
 export interface AvatarParams {
   seed: string;
-  /** Bumped when the generator changes in a way that alters existing seeds. */
-  version: 1;
+  /** Bumped when the generator changes in a way that alters existing seeds. 2: face shapes. */
+  version: 2;
   presentation: Presentation;
   /** sRGB hex. */
   skin: string;
   /** 0 = deepest tone, 1 = lightest. */
   skinDepth: number;
-  face: { width: number; jaw: number; chin: number; cheeks: number; ears: number };
-  eyes: { size: number; spacing: number; tilt: number; color: string; lashes: boolean };
+  face: {
+    shape: FaceShape;
+    width: number;
+    /** Width of the cranium and forehead relative to the face. */
+    crown: number;
+    /** Overall face length. */
+    height: number;
+    /** Forehead height. */
+    forehead: number;
+    jaw: number;
+    /** 0 = rounded jaw, 1 = square corners. */
+    jawSquare: number;
+    /** Chin length. */
+    chin: number;
+    /** 0 = broad chin, 1 = pointed. */
+    chinPoint: number;
+    /** Cheek fullness. */
+    cheeks: number;
+    cheekbones: number;
+    ears: number;
+  };
+  /** `y` moves the eyes up (+) or down; `openness` > 0 is rounder, < 0 more hooded. */
+  eyes: { size: number; spacing: number; tilt: number; y: number; openness: number; color: string; lashes: boolean };
   brows: { thickness: number; arch: number; color: string };
-  nose: { size: number; width: number };
+  nose: { size: number; width: number; length: number; bridge: number };
   mouth: { width: number; lips: number; color: string };
   hair: { style: HairStyle; texture: HairTexture; color: string; volume: number; pattern: string[] };
   facialHair: FacialHair;
@@ -55,6 +78,8 @@ export interface AvatarOptions {
   /** `#rrggbb` for trims, ties, prints and scarves. */
   accentColor?: string;
   accessory?: Accessory;
+  /** Head shape; by default it comes from the seed. */
+  faceShape?: FaceShape;
   glasses?: Glasses;
   facialHair?: FacialHair;
   background?: string;
@@ -176,10 +201,64 @@ function validOptions(o: AvatarOptions): AvatarOptions {
     outfitColor: isHexColor(o.outfitColor) ? o.outfitColor : undefined,
     accentColor: isHexColor(o.accentColor) ? o.accentColor : undefined,
     accessory: oneOf(ACCESSORY_LIST, o.accessory),
+    faceShape: oneOf(FACE_SHAPE_LIST, o.faceShape),
     glasses: oneOf(["none", "round", "square"], o.glasses),
     facialHair: oneOf(["none", "stubble", "mustache", "goatee", "beard"], o.facialHair),
     background: isHexColor(o.background) ? o.background : undefined,
   };
+}
+
+/** Face-shape archetypes. Each person varies around one of these. */
+export const FACE_SHAPE_LIST = ["oval", "round", "square", "heart", "long", "diamond"] as const satisfies readonly FaceShape[];
+
+const FACE_SHAPES: Record<FaceShape, Omit<AvatarParams["face"], "shape" | "ears">> = {
+  oval: { width: 0.95, crown: 1.0, height: 1.05, forehead: 1.0, jaw: 0.92, jawSquare: 0.15, chin: 1.05, chinPoint: 0.45, cheeks: 0.95, cheekbones: 1.0 },
+  round: { width: 1.13, crown: 1.03, height: 0.9, forehead: 0.92, jaw: 1.12, jawSquare: 0.05, chin: 0.8, chinPoint: 0.05, cheeks: 1.3, cheekbones: 0.92 },
+  square: { width: 1.07, crown: 1.0, height: 0.99, forehead: 0.98, jaw: 1.28, jawSquare: 1.0, chin: 0.92, chinPoint: 0.0, cheeks: 0.9, cheekbones: 1.02 },
+  heart: { width: 1.04, crown: 1.1, height: 1.0, forehead: 1.14, jaw: 0.74, jawSquare: 0.05, chin: 1.15, chinPoint: 0.95, cheeks: 0.92, cheekbones: 1.2 },
+  long: { width: 0.86, crown: 0.96, height: 1.2, forehead: 1.1, jaw: 0.96, jawSquare: 0.5, chin: 1.28, chinPoint: 0.35, cheeks: 0.85, cheekbones: 0.95 },
+  diamond: { width: 0.97, crown: 0.86, height: 1.07, forehead: 0.88, jaw: 0.8, jawSquare: 0.1, chin: 1.15, chinPoint: 0.8, cheeks: 0.88, cheekbones: 1.4 },
+};
+
+/**
+ * Give the face real structure: an archetype plus individual variation, from its own random stream so the rest
+ * of the avatar (skin, hair, outfit…) is unaffected. Also widens the eye, nose and mouth ranges.
+ */
+function anatomy(p: AvatarParams, rng: Random, faceShape?: FaceShape) {
+  const fem = p.presentation === "feminine";
+  const drawn = rng.weighted<FaceShape>(
+    fem
+      ? [["oval", 3], ["heart", 2.5], ["round", 2], ["diamond", 1.5], ["long", 1.5], ["square", 1]]
+      : [["oval", 3], ["square", 3], ["long", 2], ["diamond", 1.5], ["round", 1.5], ["heart", 1]],
+  );
+  const shape = faceShape ?? drawn;
+  const base = FACE_SHAPES[shape];
+  const g = (mean: number, sd: number, lo: number, hi: number) => clamp(rng.gaussian(mean, sd), lo, hi);
+  p.face = {
+    shape,
+    width: g(base.width, 0.035, 0.8, 1.2),
+    crown: g(base.crown, 0.03, 0.82, 1.16),
+    height: g(base.height, 0.035, 0.85, 1.26),
+    forehead: g(base.forehead, 0.06, 0.82, 1.2),
+    jaw: g(base.jaw * (fem ? 0.97 : 1.04), 0.05, 0.68, 1.36),
+    jawSquare: g(base.jawSquare + (fem ? -0.05 : 0.08), 0.12, 0, 1),
+    chin: g(base.chin, 0.07, 0.72, 1.4),
+    chinPoint: g(base.chinPoint, 0.12, 0, 1),
+    cheeks: g(base.cheeks, 0.07, 0.75, 1.35),
+    cheekbones: g(base.cheekbones, 0.07, 0.8, 1.5),
+    ears: p.face.ears,
+  };
+  // Stretch the existing variation in eyes, nose and mouth, and add placement.
+  const widen = (v: number, mean: number, k: number, lo: number, hi: number) => clamp(mean + (v - mean) * k, lo, hi);
+  p.eyes.size = widen(p.eyes.size, fem ? 1.04 : 0.98, 1.8, 0.82, 1.24);
+  p.eyes.spacing = widen(p.eyes.spacing, 1, 1.7, 0.86, 1.15);
+  p.eyes.y = g(0, 0.025, -0.06, 0.06);
+  p.eyes.openness = g(0, 0.4, -1, 1);
+  p.nose.size = widen(p.nose.size, 1, 1.3, 0.72, 1.4);
+  p.nose.width = widen(p.nose.width, 1, 1.3, 0.75, 1.45);
+  p.nose.length = g(1, 0.09, 0.8, 1.25);
+  p.nose.bridge = g(fem ? 0.95 : 1.05, 0.15, 0.6, 1.4);
+  p.mouth.width = widen(p.mouth.width, 1, 1.4, 0.8, 1.25);
 }
 
 export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): AvatarParams {
@@ -235,13 +314,15 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
 
   const lipBase = blend(skin, fem ? "#b5485a" : "#8e4a48", fem ? 0.45 : 0.3);
 
-  return {
+  const params: AvatarParams = {
     seed,
-    version: 1,
+    version: 2,
     presentation,
     skin,
     skinDepth,
     face: {
+      shape: "oval",
+      crown: 1, height: 1, forehead: 1, jawSquare: 0, chinPoint: 0, cheekbones: 1,
       width: clamp(shape.gaussian(1, 0.035), 0.92, 1.08),
       jaw: clamp(shape.gaussian(fem ? 0.95 : 1.06, 0.05), 0.82, 1.18),
       chin: clamp(shape.gaussian(1, 0.08), 0.8, 1.2),
@@ -252,6 +333,8 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
       size: clamp(shape.gaussian(fem ? 1.04 : 0.98, 0.05), 0.88, 1.15),
       spacing: clamp(shape.gaussian(1, 0.04), 0.9, 1.1),
       tilt: clamp(shape.gaussian(0.04, 0.05), -0.08, 0.16),
+      y: 0,
+      openness: 0,
       color: eyeColor,
       lashes: fem,
     },
@@ -265,6 +348,8 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
     nose: {
       size: clamp(shape.gaussian(1, 0.1), 0.75, 1.3),
       width: clamp(shape.gaussian(1 + (1 - skinDepth) * 0.15, 0.1), 0.8, 1.35),
+      length: 1,
+      bridge: 1,
     },
     mouth: {
       width: clamp(shape.gaussian(1, 0.07), 0.85, 1.18),
@@ -295,4 +380,6 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
     expression: options.expression ?? mood.weighted(EXPRESSIONS),
     background: options.background ?? mood.pick(BACKGROUNDS),
   };
+  anatomy(params, root.fork("anatomy"), options.faceShape);
+  return params;
 }

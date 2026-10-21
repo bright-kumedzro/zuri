@@ -13,7 +13,7 @@ const framing = (q.get("framing") ?? "bust") as Framing;
 const quality = Number(q.get("quality") ?? 1);
 const baseOpts: AvatarOptions = {};
 const opts = baseOpts;
-for (const k of ["presentation", "expression", "hair", "outfit", "glasses", "facialHair", "accessory", "outfitColor", "accentColor"] as const) {
+for (const k of ["presentation", "expression", "hair", "outfit", "glasses", "facialHair", "accessory", "outfitColor", "accentColor", "faceShape"] as const) {
   const v = q.get(k);
   if (v) (opts as Record<string, string>)[k] = v;
 }
@@ -30,8 +30,9 @@ const t0 = performance.now();
 await Promise.all(
   seeds.map(async (seed, i) => {
     // &outfits=a,b,c gives tile i its own outfit, for wardrobe contact sheets.
-    const each = q.get("outfits")?.split(",")[i];
-    const opts: AvatarOptions = each ? { ...baseOpts, outfit: each as AvatarOptions["outfit"] } : baseOpts;
+    // &shapes=a,b,c does the same for face shapes.
+    const each = q.get("outfits")?.split(",")[i], shape = q.get("shapes")?.split(",")[i];
+    const opts: AvatarOptions = { ...baseOpts, ...(each && { outfit: each as AvatarOptions["outfit"] }), ...(shape && { faceShape: shape as AvatarOptions["faceShape"] }) };
     const img = new Image();
     if (q.get("style") === "flat") {
       img.src = flatAvatarDataURL(createFlatAvatar(seed, { ...opts, size }));
@@ -54,7 +55,7 @@ await Promise.all(
     ctx.fillRect(x, y, size, 16);
     ctx.fillStyle = "#fff";
     ctx.font = "11px system-ui";
-    ctx.fillText(`${seed} · ${p.hair.style} · ${p.expression} · ${p.outfit.style} · ${p.facialHair}`, x + 4, y + 12);
+    ctx.fillText(`${seed} · ${p.face.shape} · ${p.hair.style} · ${p.expression} · ${p.outfit.style} · ${p.facialHair}`, x + 4, y + 12);
   }),
 );
 const info = { total: Math.round(performance.now() - t0) };

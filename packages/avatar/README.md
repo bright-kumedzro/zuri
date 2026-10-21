@@ -56,7 +56,7 @@ Anything you leave out comes from the seed, so a user keeps their face when they
 zuri.create(user.id, { hair: "locs", skin: 2, outfit: "hoodie", expression: "grin", glasses: "round" });
 ```
 
-Options: `presentation`, `skin` (0–13 or `#rrggbb`), `hair` (16 styles), `outfit` (22 garments: everyday, formal, traditional and work wear), `outfitColor`, `accentColor`, `accessory` (scarf, necklace, head tie), `expression` (7),
+Options: `presentation`, `faceShape` (oval, round, square, heart, long, diamond), `skin` (0–13 or `#rrggbb`), `hair` (16 styles), `outfit` (22 garments: everyday, formal, traditional and work wear), `outfitColor`, `accentColor`, `accessory` (scarf, necklace, head tie), `expression` (7),
 `glasses`, `facialHair` and `background` (`#rrggbb`). Invalid values are ignored rather than trusted, so it's safe to
 pass options your users chose.
 

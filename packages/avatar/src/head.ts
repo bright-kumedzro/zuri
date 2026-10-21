@@ -45,37 +45,56 @@ export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
   const smileCheek = p.expression === "grin" || p.expression === "laugh" ? 1.08 : p.expression === "smile" || p.expression === "wink" ? 1.04 : 1;
 
   const skullCenter: [number, number, number] = [0, 0.15, -0.05];
-  const skull: SDF = (x, y, z) => ellipsoid(x, y - 0.15, z + 0.05, skullW * fw, skullH, 0.98);
+  const { height: fh, forehead: fo, jawSquare: sq, chinPoint: cp, cheekbones: cb, crown } = p.face;
+  // A taller forehead raises and enlarges the cranium; `crown` widens or narrows it (heart vs diamond).
+  const skull: SDF = (x, y, z) => ellipsoid(x, y - 0.15 - 0.08 * (fo - 1), z + 0.05, skullW * fw * crown, skullH * (0.94 + 0.06 * fo), 0.98);
+  // The lower face (below the eyes) stretches with face height: `ly` is y in an un-stretched face.
+  const pivot = 0.1;
+  const ly = (y: number) => (y < pivot ? pivot + (y - pivot) / fh : y);
+  const toY = (v: number) => (v < pivot ? pivot + (v - pivot) * fh : v);
 
   const face: SDF = (x, y, z) => {
     let d = skull(x, y, z);
-    // Lower face narrows toward the chin.
-    const taper = 1 + 0.3 * Math.min(1, Math.max(0, -(y + 0.3)));
-    d = smin(d, ellipsoid(x * taper, y + 0.34, z - 0.1, 0.76 * jw * fw, 0.72, 0.8), 0.4);
-    d = smin(d, ellipsoid(x, y + 0.84 + 0.07 * (ch - 1), z - 0.34, 0.3 * jw * (masc ? 1.12 : 1), 0.2 * ch, 0.26), 0.3);
-    const ax = Math.abs(x);
-    d = smin(d, ellipsoid(ax - 0.42 * fw, y + 0.2, z - 0.44, 0.27 * ck * smileCheek, 0.23 * ck, 0.28 * ck * smileCheek), 0.22);
+    const v = ly(y), ax = Math.abs(x);
+    // Lower face narrows toward the chin: square jaws barely taper, pointed ones taper a lot.
+    const taper = 1 + (0.42 - 0.36 * sq) * Math.min(1, Math.max(0, -(v + 0.3)));
+    d = smin(d, ellipsoid(x * taper, v + 0.34, z - 0.1, 0.76 * jw * fw, 0.72, 0.8), 0.4);
+    // Jaw corners (gonial angle), only for squarer jaws.
+    // A firm angle under the ear rather than a bulge: small, high, and blended in.
+    if (sq > 0.05) d = smin(d, ellipsoid(ax - 0.5 * jw * fw, v + 0.6, z + 0.02, 0.19, 0.17, 0.27) + 0.14 * (1 - sq), 0.2);
+    // Chin: narrower and more forward when pointed, broad and flat when not.
+    d = smin(d, ellipsoid(x, v + 0.84 + 0.07 * (ch - 1), z - 0.34 - 0.05 * cp, 0.32 * jw * (masc ? 1.12 : 1) * (1 - 0.55 * cp), 0.2 * ch, 0.26), 0.3);
+    d = smin(d, ellipsoid(ax - 0.42 * fw, v + 0.2, z - 0.44, 0.27 * ck * smileCheek, 0.23 * ck, 0.28 * ck * smileCheek), 0.22);
+    // Cheekbones: a ridge below and beside the eyes.
+    // Cheekbones widen the mid-face smoothly rather than sticking out as bumps.
+    d = smin(d, ellipsoid(ax - 0.4 * fw, y + 0.08, z - 0.26, 0.34 + 0.16 * (cb - 1), 0.16, 0.3), 0.14 + 0.1 * (cb - 0.8));
     return d;
   };
 
   // Landmarks, measured on the featureless face.
   const r = (toon ? 0.215 : 0.165) * p.eyes.size;
   const ex = (toon ? 0.36 : 0.335) * p.eyes.spacing * fw;
-  const ey = toon ? 0.0 : 0.02;
+  const ey = (toon ? 0.0 : 0.02) + p.eyes.y;
   const ez = surfaceZ(face, ex, ey) - 0.62 * r;
   const browY = ey + r + 0.13;
-  const my = -0.53;
+  const nl = p.nose.length;
+  const my = toY(-0.53 - 0.06 * (nl - 1));
   const mz = surfaceZ(face, 0, my);
   const mw = 0.2 * p.mouth.width * (toon ? 1.15 : 1);
 
   // Toon noses are bigger and rounder.
   const ns = p.nose.size * (toon ? 1.22 : 1), nw = p.nose.width * (toon ? 1.08 : 1);
-  const nzTip = surfaceZ(face, 0, -0.3) + 0.1 * ns;
-  const nzTop = surfaceZ(face, 0, ey) - 0.06;
-  const noseTip: [number, number, number] = [0, -0.31, nzTip];
-  const nzWing = surfaceZ(face, 0.1, -0.33);
+  const tipY = toY(-0.31 - 0.12 * (nl - 1));
+  const nzTip = surfaceZ(face, 0, tipY + 0.01) + 0.1 * ns;
+  // A higher bridge stands further out from the face.
+  const nzTop = surfaceZ(face, 0, ey) - 0.06 + 0.05 * (p.nose.bridge - 1);
+  const noseTip: [number, number, number] = [0, tipY, nzTip];
+  const nzWing = surfaceZ(face, 0.1, tipY - 0.02);
 
-  const earX = 0.9 * fw, earY = -0.02, earZ = -0.1, earH = 0.21 * er;
+  // Ears sit on the actual side of the head, which now varies with face shape.
+  const earY = -0.02, earZ = -0.1, earH = 0.21 * er;
+  let earX = 0.9 * fw;
+  for (let x = 1.4; x > 0.4; x -= 0.005) if (face(x, earY, earZ) < 0) { earX = x - 0.015; break; }
   // A slimmer neck and shoulders make the toon head look larger without changing the framing.
   const neckR = (masc ? 0.4 : 0.35) * (toon ? 0.86 : 1);
   const shoulderW = (masc ? 0.98 : 0.84) * (toon ? 0.9 : 1);
@@ -84,13 +103,13 @@ export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
     let d = face(x, y, z);
     const ax = Math.abs(x);
     // Nose: bridge-to-tip cone plus nostril wings.
-    if (z > 0.3 && y < 0.25 && y > -0.6 && ax < 0.35) {
-      let n = capsule(x, y, z, 0, ey, nzTop, 0, -0.31 + 0.03 * (ns - 1), nzTip - 0.05, 0.045, 0.085 * nw * ns);
-      n = smin(n, ellipsoid(ax - 0.085 * nw * ns, y + 0.335, z - nzWing, 0.068 * ns * nw, 0.055 * ns, 0.06 * ns), 0.05);
+    if (z > 0.3 && y < ey + 0.25 && y > tipY - 0.3 && ax < 0.35) {
+      let n = capsule(x, y, z, 0, ey, nzTop, 0, tipY + 0.03 * (ns - 1), nzTip - 0.05, 0.045, 0.085 * nw * ns);
+      n = smin(n, ellipsoid(ax - 0.085 * nw * ns, y - tipY + 0.025, z - nzWing, 0.068 * ns * nw, 0.055 * ns, 0.06 * ns), 0.05);
       d = smin(d, n, 0.07);
     }
     // Lips: soft volumes the painted mouth sits on.
-    if (z > 0.3 && y < -0.35 && y > -0.75 && ax < 0.4) {
+    if (z > 0.3 && y < my + 0.18 && y > my - 0.22 && ax < 0.4) {
       const lip = Math.min(
         ellipsoid(x, y - my - 0.035, z - mz + 0.035, mw * 1.05, 0.03 + 0.02 * p.mouth.lips, 0.06),
         ellipsoid(x, y - my + 0.045, z - mz + 0.04, mw * 0.9, 0.035 + 0.022 * p.mouth.lips, 0.06),
@@ -127,7 +146,7 @@ export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
   return {
     style,
     body,
-    bodyBox: { min: [-1.55, BODY_BOTTOM - 0.02, -1.15], max: [1.55, 1.25, 1.35] },
+    bodyBox: { min: [-1.6, BODY_BOTTOM - 0.02, -1.15], max: [1.6, 1.4, 1.4] },
     face: head,
     skull,
     skullCenter,

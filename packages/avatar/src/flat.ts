@@ -36,34 +36,65 @@ function hash(s: string): string {
 }
 
 interface Geo {
+  /** Half-width at the cheekbones (the widest point). */
   W: number;
+  /** Half-width of the cranium. */
+  crown: number;
   top: number;
   mid: number;
   chin: number;
+  /** Half-width at the jaw corners. */
   jaw: number;
+  jawSquare: number;
+  chinHalf: number;
   eyeY: number;
   mouthY: number;
+  noseY: number;
   shoulder: number;
 }
 
 function geometry(p: AvatarParams): Geo {
-  const W = 86 * p.face.width;
+  const f = p.face;
+  // Flat illustration exaggerates the face shape more than 3D, so it still reads at small sizes.
+  const boost = (v: number, k: number) => 1 + (v - 1) * k;
+  const unit = 86 * boost(f.width, 1.7);
+  const W = unit * boost(f.cheekbones, 0.25);
   return {
     W,
-    top: 118,
+    crown: unit * boost(f.crown, 1.6),
+    top: 118 - 26 * (f.forehead - 1) - 40 * (f.height - 1),
     mid: 212,
-    chin: 312 + (p.face.chin - 1) * 30,
-    jaw: W * 0.62 * p.face.jaw,
-    eyeY: 216,
-    mouthY: 280,
+    chin: 312 + 120 * (f.height - 1) + 40 * (f.chin - 1),
+    jaw: unit * 0.62 * boost(f.jaw, 1.6),
+    jawSquare: f.jawSquare,
+    chinHalf: 6 + 30 * (1 - 0.85 * f.chinPoint),
+    eyeY: 216 - 60 * p.eyes.y,
+    mouthY: 280 + 50 * (f.height - 1) + 12 * (p.nose.length - 1),
+    noseY: 248 + 40 * (f.height - 1) + 18 * (p.nose.length - 1),
     shoulder: 380,
   };
 }
 
+/** Head outline: crown width over the forehead, cheekbones at the widest point, then a jaw that is rounded or square. */
 function headPath(g: Geo, cheeks: number): string {
-  const { W, top, mid, chin, jaw } = g;
-  const b = 55 * cheeks;
-  return `M${CX} ${top}C${CX + W * 0.56} ${top} ${CX + W} ${mid - 60} ${CX + W} ${mid}C${CX + W} ${mid + b} ${CX + jaw} ${chin - 30} ${CX + 20} ${chin}Q${CX} ${chin + 4} ${CX - 20} ${chin}C${CX - jaw} ${chin - 30} ${CX - W} ${mid + b} ${CX - W} ${mid}C${CX - W} ${mid - 60} ${CX - W * 0.56} ${top} ${CX} ${top}Z`;
+  const { W, crown, top, mid, chin, jaw, jawSquare: sq, chinHalf: cw } = g;
+  const b = 55 * cheeks * (1 - 0.3 * sq);
+  const jy = chin - 34 - 18 * sq;
+  const dip = 22 * (1 - 0.5 * sq);
+  return [
+    `M${CX} ${top}`,
+    // Right: crown to temple, temple to cheekbone, cheek to jaw corner, jaw to chin.
+    `C${CX + crown * 0.56} ${top} ${CX + crown} ${mid - 75} ${CX + crown} ${mid - 50}`,
+    `C${CX + crown} ${mid - 25} ${CX + W} ${mid - 20} ${CX + W} ${mid}`,
+    `C${CX + W} ${mid + b} ${CX + jaw + 30 * sq} ${jy - 20 * sq} ${CX + jaw} ${jy}`,
+    `C${CX + jaw - 10} ${jy + dip} ${CX + cw + 14} ${chin} ${CX + cw} ${chin}`,
+    `Q${CX} ${chin + 4} ${CX - cw} ${chin}`,
+    // Left, mirrored and reversed.
+    `C${CX - cw - 14} ${chin} ${CX - jaw + 10} ${jy + dip} ${CX - jaw} ${jy}`,
+    `C${CX - jaw - 30 * sq} ${jy - 20 * sq} ${CX - W} ${mid + b} ${CX - W} ${mid}`,
+    `C${CX - W} ${mid - 20} ${CX - crown} ${mid - 25} ${CX - crown} ${mid - 50}`,
+    `C${CX - crown} ${mid - 75} ${CX - crown * 0.56} ${top} ${CX} ${top}Z`,
+  ].join("");
 }
 
 /** Outer edge of a hair dome, from the left side up over the head to the right side. */
@@ -436,7 +467,7 @@ export function flatAvatarSVG(raw: AvatarParams, options: FlatOptions = {}): str
   svg += fh.under;
   svg += brows(p, g);
   svg += eyes(p, g);
-  const nw = 9 * p.nose.width, ny = 248 + 4 * (p.nose.size - 1);
+  const nw = 9 * p.nose.width, ny = g.noseY + 4 * (p.nose.size - 1);
   svg += `<path d="M${CX - nw} ${ny}Q${CX} ${ny + 6 * p.nose.size} ${CX + nw} ${ny}" fill="none" stroke="${skinDark}" stroke-width="3.5" stroke-linecap="round"/>`;
   svg += mouth(p, g);
   svg += fh.over;

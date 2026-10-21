@@ -145,7 +145,9 @@ function buildEye(p: AvatarParams, rig: Rig, side: 1 | -1, eyeMat: THREE.Materia
   group.add(upper, lower);
 
   const closed = p.expression === "wink" && side < 0;
-  const [u, l] = closed ? CLOSED : LIDS[p.expression];
+  const [u0, l0] = closed ? CLOSED : LIDS[p.expression];
+  const o = closed ? 0 : p.eyes.openness ?? 0;
+  const u = u0 - 0.13 * o, l = l0 + 0.06 * o;
   const setLids = (blink: number) => {
     const uu = u + (CLOSED[0] - u) * blink;
     const ll = l + (CLOSED[1] - l) * blink;
