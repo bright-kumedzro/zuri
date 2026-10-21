@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zuri. A 3D face for every user.</title>
-    <meta name="description" content="Deterministic 3D avatars generated entirely from code. Pass any string, get a live 3D bust, a PNG or a .glb." />
+    <meta name="description" content="Type any name and get a unique, expressive 3D avatar. Deterministic, inclusive, generated entirely from code. Free and open source." />
+    <meta property="og:title" content="Zuri. A 3D face for every user." />
+    <meta property="og:description" content="Deterministic 3D avatars generated from code. 14 skin tones, every hair texture. Free and open source." />
+    <meta property="og:image" content="/avatars/amara.webp" />
+    <meta name="theme-color" content="#0a0a0b" />
     <link rel="icon" href="/avatars/amara.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,121 +16,245 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <div class="container">
-      <nav class="top">
+      <nav class="top" aria-label="Main">
         <a class="brand" href="#"><img src="/avatars/amara.webp" alt="" /><span>zuri</span></a>
         <div class="links">
-          <a href="#install">docs</a>
-          <a href="#pricing">pricing</a>
-          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">github</a>
+          <a href="#builder" data-i18n="nav.builder">Builder</a>
+          <a href="#playground" data-i18n="nav.docs">Docs</a>
+          <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+        <div class="nav-right">
+          <label class="lang"><span class="sr">Language</span><select id="lang"></select></label>
+          <a class="primary sm" href="#builder" data-i18n="nav.cta">Get started</a>
         </div>
       </nav>
 
-      <header class="hero">
-        <div class="hero-copy">
-          <h1>A 3D face for <em>every user.</em></h1>
-          <p class="lede">
-            Deterministic 3D avatars, generated entirely from code. Pass any string (user id, email, UUID) and get a
-            live 3D bust, a PNG or a .glb. Same seed, same face. Nothing to download.
-          </p>
-          <div class="hero-ctas">
-            <a class="primary" href="#install">Install Zuri →</a>
-            <a class="secondary" href="#pricing">See pricing →</a>
-            <button class="tertiary" id="dl-glb">Download .glb</button>
+      <main id="main">
+        <!-- Hero -->
+        <header class="hero">
+          <div class="hero-copy">
+            <h1 data-i18n-html="hero.title">A 3D face for <em>every user.</em></h1>
+            <p class="lede" data-i18n="hero.lede"></p>
+            <form class="hero-try" id="hero-form">
+              <input id="hero-seed" data-i18n-ph="hero.placeholder" spellcheck="false" autocomplete="off" aria-label="Name" />
+              <button class="primary" type="submit" data-i18n="hero.cta">Make it yours →</button>
+            </form>
+            <div class="hero-sub">
+              <button class="install" id="copy-install" type="button">
+                <span class="dollar">$</span><span>npm i @zuri/avatar</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+              <ul class="trust">
+                <li data-i18n="trust.mit"></li>
+                <li data-i18n="trust.signup"></li>
+                <li data-i18n="trust.browser"></li>
+                <li data-i18n="trust.gdpr"></li>
+              </ul>
+            </div>
           </div>
-        </div>
-        <div class="stage">
-          <div class="stage-tile">
-            <canvas id="stage"></canvas>
-            <div class="spinner" id="loading"></div>
+          <div class="stage">
+            <div class="stage-tile" id="hero-tile">
+              <img class="poster" id="hero-poster" src="/avatars/amara.webp" alt="" />
+              <canvas id="hero-canvas" aria-label="Live 3D avatar. Drag to rotate."></canvas>
+              <div class="spinner" id="hero-loading"></div>
+            </div>
           </div>
-          <div class="stage-bar">
-            <label class="stage-seed"><span>seed</span><input id="hero-seed" spellcheck="false" autocomplete="off" /></label>
-            <button class="stage-png" id="dl-png" title="Download PNG">png</button>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <section class="cast-section" aria-label="Example avatars">
-        <div class="cast-grid" id="cast"></div>
-      </section>
+        <!-- Cast -->
+        <section class="cast-section" aria-label="Example avatars">
+          <div class="cast-grid" id="cast"></div>
+          <p class="caption" data-i18n="cast.caption"></p>
+        </section>
 
-      <section class="install-section" id="install">
-        <p class="blurb"><span>Change the user id, switch frameworks, copy the snippet.</span></p>
-        <div class="playground">
-          <div class="editor-card">
-            <div class="editor-head" id="tabs"></div>
-            <label class="seed-bar"><span>seed</span><input id="seed" spellcheck="false" autocomplete="off" /></label>
-            <pre class="editor-body"><code id="code"></code></pre>
-            <div class="editor-foot">
-              <span>npm i @zuri/avatar three</span>
-              <button id="copy">copy</button>
+        <!-- Audiences -->
+        <section class="section" id="audiences">
+          <h2 data-i18n="aud.label">Built for</h2>
+          <div class="tabs" role="tablist" id="aud-tabs">
+            <button role="tab" aria-selected="true" data-aud="dev" data-i18n="aud.dev"></button>
+            <button role="tab" aria-selected="false" data-aud="design" data-i18n="aud.design"></button>
+            <button role="tab" aria-selected="false" data-aud="product" data-i18n="aud.product"></button>
+          </div>
+          <div class="aud-panel" data-panel="dev">
+            <div>
+              <h3 data-i18n="aud.dev.title"></h3>
+              <ul class="ticks"><li data-i18n="aud.dev.1"></li><li data-i18n="aud.dev.2"></li><li data-i18n="aud.dev.3"></li></ul>
+              <a class="secondary" href="#playground" data-i18n="aud.dev.cta"></a>
+            </div>
+            <pre class="mini-code"><code><span class="k">import</span> { AvatarFactory } <span class="k">from</span> <span class="s">"@zuri/avatar"</span>;
+
+<span class="k">const</span> avatar = <span class="k">await new</span> AvatarFactory().create(user.id);
+scene.add(avatar);</code></pre>
+          </div>
+          <div class="aud-panel" data-panel="design" hidden>
+            <div>
+              <h3 data-i18n="aud.design.title"></h3>
+              <ul class="ticks"><li data-i18n="aud.design.1"></li><li data-i18n="aud.design.2"></li><li data-i18n="aud.design.3"></li></ul>
+              <a class="secondary" href="#builder" data-i18n="aud.design.cta"></a>
+            </div>
+            <div class="asset-row">
+              <figure><img src="/avatars/lin.webp" alt="" /><figcaption>lin.png</figcaption></figure>
+              <figure><img src="/avatars/hiro.webp" alt="" /><figcaption>hiro.glb</figcaption></figure>
+              <figure><img src="/avatars/efua.webp" alt="" /><figcaption>efua.png</figcaption></figure>
             </div>
           </div>
-          <div class="preview-card">
-            <div class="pv profile">
-              <img data-avatar alt="" />
-              <div><b data-name></b><small>member</small></div>
-              <span class="pill">follow</span>
+          <div class="aud-panel" data-panel="product" hidden>
+            <div>
+              <h3 data-i18n="aud.product.title"></h3>
+              <ul class="ticks"><li data-i18n="aud.product.1"></li><li data-i18n="aud.product.2"></li><li data-i18n="aud.product.3"></li></ul>
+              <a class="secondary" href="#pricing" data-i18n="aud.product.cta"></a>
             </div>
-            <div class="pv comment">
-              <img data-avatar alt="" />
-              <p><b data-name></b> shipped v0.8. Smooth deploy, zero rollbacks.</p>
-            </div>
-            <div class="pv team">
-              <div class="stack" id="stack"></div>
-              <small>design · 5 members</small>
+            <div class="mock-thread">
+              <div class="pv"><img src="/avatars/kwame.webp" alt="" /><p><b>Kwame</b> Can we ship the onboarding today?</p></div>
+              <div class="pv"><img src="/avatars/sofia.webp" alt="" /><p><b>Sofia</b> Yes! Copy is translated, QA is green.</p></div>
+              <div class="pv"><img src="/avatars/hiro.webp" alt="" /><p><b>Hiro</b> 🚀</p></div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="pricing-section" id="pricing">
-        <h2>pricing</h2>
-        <p class="blurb"><span>Free and open source in your bundle. Pay only for the hosted API.</span></p>
-        <div class="plans">
-          <article class="plan">
-            <h3>Open source</h3>
-            <div class="price">$0</div>
-            <ul>
-              <li>MIT library, unlimited client renders</li>
-              <li>Live 3D, PNG and .glb in the browser</li>
-              <li>All standard styles</li>
-            </ul>
-            <a class="secondary" href="#install">Install →</a>
-          </article>
-          <article class="plan featured">
-            <h3>Pro</h3>
-            <div class="price">$12<small>/mo</small></div>
-            <ul>
-              <li>Hosted API, 100k renders / month</li>
-              <li>PNG &amp; WebP up to 1024px, CDN cached</li>
-              <li>.glb endpoint, premium style packs</li>
-              <li>No attribution</li>
-            </ul>
-            <a class="primary" href="mailto:hello@zuri.dev?subject=Zuri%20Pro">Start free trial →</a>
-          </article>
-          <article class="plan">
-            <h3>Business</h3>
-            <div class="price">$49<small>/mo</small></div>
-            <ul>
-              <li>1M renders / month</li>
-              <li>Brand palettes &amp; custom backgrounds</li>
-              <li>Animated stickers, team seats, SLA</li>
-            </ul>
-            <a class="secondary" href="mailto:hello@zuri.dev?subject=Zuri%20Business">Contact →</a>
-          </article>
-        </div>
-        <p class="fine">Need self-hosting or custom styles? <a href="mailto:hello@zuri.dev?subject=Zuri%20Enterprise">Talk to us</a>.</p>
-      </section>
+        <!-- Inclusion -->
+        <section class="section incl">
+          <h2 data-i18n="incl.label">Everyone belongs</h2>
+          <p class="blurb"><span data-i18n="incl.title"></span> <span class="muted" data-i18n="incl.lede"></span></p>
+          <div class="incl-grid">
+            <div class="incl-card">
+              <h3 data-i18n="incl.tones"></h3>
+              <div class="tones" id="tones"></div>
+            </div>
+            <div class="incl-card">
+              <h3 data-i18n="incl.hair"></h3>
+              <div class="hair-row" id="hair-row"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Builder -->
+        <section class="section" id="builder">
+          <h2 data-i18n="builder.label">Builder</h2>
+          <p class="blurb"><span data-i18n="builder.title"></span> <span class="muted" data-i18n="builder.lede"></span></p>
+          <div class="builder">
+            <div class="builder-preview">
+              <div class="stage-tile" id="builder-tile">
+                <canvas id="builder-canvas" aria-label="Your avatar. Drag to rotate."></canvas>
+                <div class="spinner" id="builder-loading"></div>
+              </div>
+              <div class="builder-actions">
+                <button class="primary" id="dl-png" data-i18n="builder.png"></button>
+                <button class="secondary" id="dl-glb" data-i18n="builder.glb"></button>
+                <button class="tertiary" id="copy-code" data-i18n="builder.code"></button>
+              </div>
+            </div>
+            <div class="controls" id="controls">
+              <div class="field seed-field">
+                <label for="builder-seed" data-i18n="builder.seed"></label>
+                <div class="seed-row">
+                  <input id="builder-seed" spellcheck="false" autocomplete="off" />
+                  <button class="secondary sm" id="surprise" type="button" data-i18n="builder.random"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Playground -->
+        <section class="section" id="playground">
+          <h2 data-i18n="play.label">Playground</h2>
+          <p class="blurb"><span data-i18n="play.blurb"></span></p>
+          <div class="playground">
+            <div class="editor-card">
+              <div class="editor-head" id="code-tabs" role="tablist"></div>
+              <label class="seed-bar"><span>seed</span><input id="play-seed" spellcheck="false" autocomplete="off" /></label>
+              <pre class="editor-body"><code id="code"></code></pre>
+              <div class="editor-foot">
+                <span>npm i @zuri/avatar three</span>
+                <button id="copy-snippet" type="button">copy</button>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="pv"><img data-avatar alt="" /><div><b data-name></b><small data-i18n="play.member"></small></div><span class="pill" data-i18n="play.follow"></span></div>
+              <div class="pv"><img data-avatar alt="" /><p><b data-name></b> <span data-i18n="play.comment"></span></p></div>
+              <div class="pv team"><div class="stack" id="stack"></div><small data-i18n="play.team"></small></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pricing -->
+        <section class="section" id="pricing">
+          <h2 data-i18n="pricing.label">Pricing</h2>
+          <p class="blurb"><span data-i18n="pricing.title"></span> <span class="muted" data-i18n="pricing.lede"></span></p>
+          <div class="pricing-bar">
+            <div class="toggle" role="tablist" id="period">
+              <button role="tab" aria-selected="true" data-period="monthly" data-i18n="pricing.monthly"></button>
+              <button role="tab" aria-selected="false" data-period="yearly"><span data-i18n="pricing.yearly"></span> <span class="save" data-i18n="pricing.save"></span></button>
+            </div>
+            <label class="currency"><span class="sr">Currency</span><select id="currency"></select></label>
+          </div>
+          <div class="plans">
+            <article class="plan">
+              <h3 data-i18n="plan.free"></h3>
+              <p class="plan-desc" data-i18n="plan.free.desc"></p>
+              <div class="price"><span class="amount" id="price-free"></span></div>
+              <p class="billing">&nbsp;</p>
+              <ul class="ticks"><li data-i18n="plan.free.1"></li><li data-i18n="plan.free.2"></li><li data-i18n="plan.free.3"></li></ul>
+              <a class="secondary" href="#playground" data-i18n="plan.free.cta"></a>
+            </article>
+            <article class="plan featured">
+              <div class="badge" data-i18n="plan.pro.badge"></div>
+              <h3 data-i18n="plan.pro"></h3>
+              <p class="plan-desc" data-i18n="plan.pro.desc"></p>
+              <div class="price"><span class="amount" id="price-pro"></span><small data-i18n="pricing.mo"></small></div>
+              <p class="billing" data-billing>&nbsp;</p>
+              <ul class="ticks"><li data-i18n="plan.pro.1"></li><li data-i18n="plan.pro.2"></li><li data-i18n="plan.pro.3"></li><li data-i18n="plan.pro.4"></li></ul>
+              <a class="primary" href="mailto:hello@zuri.dev?subject=Zuri%20Pro%20trial" data-i18n="plan.pro.cta"></a>
+            </article>
+            <article class="plan">
+              <h3 data-i18n="plan.biz"></h3>
+              <p class="plan-desc" data-i18n="plan.biz.desc"></p>
+              <div class="price"><span class="amount" id="price-biz"></span><small data-i18n="pricing.mo"></small></div>
+              <p class="billing" data-billing>&nbsp;</p>
+              <ul class="ticks"><li data-i18n="plan.biz.1"></li><li data-i18n="plan.biz.2"></li><li data-i18n="plan.biz.3"></li><li data-i18n="plan.biz.4"></li></ul>
+              <a class="secondary" href="mailto:hello@zuri.dev?subject=Zuri%20Business" data-i18n="plan.biz.cta"></a>
+            </article>
+          </div>
+          <p class="fine"><span id="regional"></span> <span data-i18n-html="pricing.enterprise"></span></p>
+        </section>
+
+        <!-- FAQ -->
+        <section class="section" id="faq">
+          <h2 data-i18n="faq.label">FAQ</h2>
+          <p class="blurb"><span data-i18n="faq.title"></span></p>
+          <div class="faq">
+            <details open><summary data-i18n="faq.q1"></summary><p data-i18n="faq.a1"></p></details>
+            <details><summary data-i18n="faq.q2"></summary><p data-i18n="faq.a2"></p></details>
+            <details><summary data-i18n="faq.q3"></summary><p data-i18n="faq.a3"></p></details>
+            <details><summary data-i18n="faq.q4"></summary><p data-i18n="faq.a4"></p></details>
+            <details><summary data-i18n="faq.q5"></summary><p data-i18n="faq.a5"></p></details>
+            <details><summary data-i18n="faq.q6"></summary><p data-i18n="faq.a6"></p></details>
+          </div>
+        </section>
+
+        <!-- Final -->
+        <section class="final">
+          <div class="final-faces" id="final-faces" aria-hidden="true"></div>
+          <h2 class="final-title" data-i18n="final.title"></h2>
+          <p class="muted" data-i18n="final.lede"></p>
+          <div class="final-ctas">
+            <a class="primary" href="#builder" data-i18n="final.cta"></a>
+            <a class="secondary" href="#playground" data-i18n="final.dev"></a>
+          </div>
+        </section>
+      </main>
 
       <footer class="bottom">
-        <div>zuri · deterministic 3D avatars · MIT</div>
+        <div>zuri · <span data-i18n="footer.tag"></span></div>
         <div class="foot-links">
-          <a href="#install">docs</a>
-          <a href="#pricing">pricing</a>
-          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">github</a>
-          <a href="mailto:hello@zuri.dev">contact</a>
+          <a href="#playground" data-i18n="nav.docs"></a>
+          <a href="#pricing" data-i18n="nav.pricing"></a>
+          <a href="https://github.com/bright-kumedzro/zuri" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="mailto:hello@zuri.dev" data-i18n="footer.contact"></a>
         </div>
       </footer>
     </div>
