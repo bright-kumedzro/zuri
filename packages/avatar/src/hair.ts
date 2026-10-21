@@ -3,7 +3,8 @@
 import { Random } from "@zuri/core/random";
 import type { AvatarParams, HairStyle } from "./params.ts";
 import type { Rig } from "./head.ts";
-import type { Box } from "./mesher.ts";
+import { surfaceZ, type Box } from "./mesher.ts";
+import { browCurve } from "./face.ts";
 import { type SDF, capsule, ellipsoid, noise3, roundBox, smax, smin, sphere, torus } from "./sdf.ts";
 
 export interface HairShape {
@@ -23,8 +24,10 @@ interface Hairline {
 
 const BOX_HEAD: Box = { min: [-1.35, -0.75, -1.35], max: [1.35, 1.65, 1.35] };
 
+type HairTexture = "fine" | "straight" | "curly" | "coily";
+
 /** Texture displacement per hair type. Positive values push the surface out. */
-function texture(kind: "fine" | "straight" | "curly" | "coily", x: number, y: number, z: number): number {
+function softTexture(kind: HairTexture, x: number, y: number, z: number): number {
   switch (kind) {
     case "fine":
       return 0.004 * noise3(x * 30, y * 30, z * 30);
@@ -39,9 +42,50 @@ function texture(kind: "fine" | "straight" | "curly" | "coily", x: number, y: nu
   }
 }
 
+/** Integer hash -> [0, 1). */
+function hash3(i: number, j: number, k: number, salt: number): number {
+  let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(k, 2147483647) ^ Math.imul(salt, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1103515245);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Packed round domes (cellular noise): 0 between clumps, 1 at a clump's center. */
+function clumps(x: number, y: number, z: number, scale: number): number {
+  x *= scale; y *= scale; z *= scale;
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  let best = 9;
+  for (let i = -1; i <= 1; i++)
+    for (let j = -1; j <= 1; j++)
+      for (let k = -1; k <= 1; k++) {
+        const cx = xi + i, cy = yi + j, cz = zi + k;
+        const dx = cx + hash3(cx, cy, cz, 1) - x, dy = cy + hash3(cx, cy, cz, 2) - y, dz = cz + hash3(cx, cy, cz, 3) - z;
+        best = Math.min(best, dx * dx + dy * dy + dz * dz);
+      }
+  const R = 0.62;
+  return Math.sqrt(Math.max(0, R * R - best)) / R;
+}
+
+/** Toon hair is sculpted: chunky carved strands and big smooth clumps instead of fine detail. */
+function toonTexture(kind: HairTexture, x: number, y: number, z: number): number {
+  switch (kind) {
+    case "fine":
+      return 0;
+    case "straight": {
+      const a = Math.atan2(x, z);
+      // Rounded ridges with crisp grooves between them, like carved clay.
+      return 0.032 * Math.sqrt(Math.abs(Math.sin(a * 9 + 1.6 * noise3(x * 1.5, y * 1.5, z * 1.5)))) - 0.016;
+    }
+    case "curly":
+      return 0.09 * clumps(x, y, z, 3.2) - 0.04;
+    case "coily":
+      return 0.08 * clumps(x, y, z, 4.6) - 0.037;
+  }
+}
+
 export function buildHair(p: AvatarParams, rig: Rig): HairShape | null {
   const style: HairStyle = p.hair.style;
   if (style === "none") return null;
+  const texture = rig.style === "toon" ? toonTexture : softTexture;
   const v = p.hair.volume;
   const [cx, cy, cz] = rig.skullCenter;
   const masc = p.presentation === "masculine";
@@ -292,6 +336,39 @@ export function buildHair(p: AvatarParams, rig: Rig): HairShape | null {
       };
   }
   return null;
+}
+
+/** Sculpted brows for the toon style: a tapered tube along the brow curve, half sunk into the skin. */
+export function buildBrows(p: AvatarParams, rig: Rig): HairShape {
+  type Seg = { a: [number, number, number]; b: [number, number, number]; ra: number; rb: number };
+  const segs: Seg[] = [];
+  const t = p.brows.thickness;
+  for (const s of [-1, 1]) {
+    const { inner, middle, outer } = browCurve(p, rig, s);
+    const pts: [number, number, number][] = [];
+    const n = 8;
+    for (let i = 0; i <= n; i++) {
+      const f = i / n, g = 1 - f;
+      // Quadratic Bezier, matching the painted brow's outline.
+      const x = g * g * inner[0] + 2 * g * f * middle[0] + f * f * outer[0];
+      const y = g * g * inner[1] + 2 * g * f * middle[1] + f * f * outer[1];
+      pts.push([x, y, surfaceZ(rig.face, x, y) - 0.012]);
+    }
+    for (let i = 0; i < n; i++) {
+      const r = (f: number) => (0.045 - 0.025 * f) * t;
+      segs.push({ a: pts[i]!, b: pts[i + 1]!, ra: r(i / n), rb: r((i + 1) / n) });
+    }
+  }
+  const tex = (x: number, y: number, z: number) => 0.004 * noise3(x * 40, y * 40, z * 40);
+  return {
+    sdf: (x, y, z) => {
+      let d = Infinity;
+      for (const g of segs) d = Math.min(d, capsule(x, y, z, g.a[0], g.a[1], g.a[2], g.b[0], g.b[1], g.b[2], g.ra, g.rb));
+      return d - tex(x, y, z);
+    },
+    box: { min: [-0.8, rig.browY - 0.25, 0.2], max: [0.8, rig.browY + 0.35, 1.3] },
+    cell: 0.012,
+  };
 }
 
 /** Beard, goatee or mustache volumes hugging the lower face. Stubble is painted, not modeled. */

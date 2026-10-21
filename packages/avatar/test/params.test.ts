@@ -34,3 +34,17 @@ test("meshes are finite and non-empty", () => {
     assert.ok(part.positions.every(Number.isFinite));
   }
 });
+
+test("toon style: sculpted brows, finite meshes, same person", () => {
+  const p = generateAvatar("toon-check", { hair: "afro", facialHair: "beard", presentation: "masculine" });
+  const toon = meshAvatar(p, 0.6, "toon");
+  assert.equal(toon.style, "toon");
+  for (const part of [toon.body, toon.hair!, toon.facialHair!, toon.outfit, toon.brows!]) {
+    assert.ok(part.indices.length > 300);
+    assert.ok(part.positions.every(Number.isFinite));
+  }
+  // The soft style paints its brows instead.
+  assert.equal(meshAvatar(p, 0.6).brows, null);
+  // Same seed, same toon mesh.
+  assert.deepEqual(meshAvatar(p, 0.6, "toon").hair!.positions, toon.hair!.positions);
+});

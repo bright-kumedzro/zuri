@@ -3,6 +3,7 @@
 import { assembleAvatar, type Avatar } from "./build.ts";
 import { meshAvatar, type AvatarMeshes } from "./mesh.ts";
 import { generateAvatar, type AvatarOptions, type AvatarParams } from "./params.ts";
+import type { AvatarStyle } from "./head.ts";
 import { spawnWorker } from "./spawn.ts";
 
 interface Pending {
@@ -10,6 +11,7 @@ interface Pending {
   reject: (e: Error) => void;
   params: AvatarParams;
   quality: number;
+  style: AvatarStyle;
 }
 
 export interface FactoryOptions {
@@ -43,7 +45,7 @@ export class AvatarFactory {
           if (job.slot !== slot) continue;
           this.pending.delete(id);
           try {
-            job.resolve(meshAvatar(job.params, job.quality));
+            job.resolve(meshAvatar(job.params, job.quality, job.style));
           } catch (err) {
             job.reject(err as Error);
           }
@@ -62,23 +64,23 @@ export class AvatarFactory {
   }
 
   /** Mesh the params (in a worker when available). */
-  mesh(params: AvatarParams, quality = 1): Promise<AvatarMeshes> {
-    if (!this.pool.length) return Promise.resolve(meshAvatar(params, quality));
+  mesh(params: AvatarParams, quality = 1, style: AvatarStyle = "soft"): Promise<AvatarMeshes> {
+    if (!this.pool.length) return Promise.resolve(meshAvatar(params, quality, style));
     const slot = this.pool.reduce((a, b) => (b.load < a.load ? b : a));
     const id = this.nextId++;
     slot.load++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject, slot, params, quality });
-      slot.worker.postMessage({ id, params, quality });
+      this.pending.set(id, { resolve, reject, slot, params, quality, style });
+      slot.worker.postMessage({ id, params, quality, style });
     });
   }
 
-  async create(seed: string, options: AvatarOptions & { quality?: number } = {}): Promise<Avatar> {
-    return this.build(generateAvatar(seed, options), options.quality);
+  async create(seed: string, options: AvatarOptions & { quality?: number; style?: AvatarStyle } = {}): Promise<Avatar> {
+    return this.build(generateAvatar(seed, options), options.quality, options.style);
   }
 
-  async build(params: AvatarParams, quality = 1): Promise<Avatar> {
-    return assembleAvatar(params, await this.mesh(params, quality));
+  async build(params: AvatarParams, quality = 1, style: AvatarStyle = "soft"): Promise<Avatar> {
+    return assembleAvatar(params, await this.mesh(params, quality, style === "toon" ? "toon" : "soft"));
   }
 
   dispose() {

@@ -4,10 +4,10 @@
  */
 
 import type { AvatarParams } from "./params.ts";
-import { buildRig } from "./head.ts";
+import { buildRig, type AvatarStyle } from "./head.ts";
 import { polygonize, type RawMesh } from "./mesher.ts";
 import { FACE_UV } from "./face.ts";
-import { buildFacialHair, buildHair } from "./hair.ts";
+import { buildBrows, buildFacialHair, buildHair } from "./hair.ts";
 import { buildOutfit } from "./outfit.ts";
 import { noise3 } from "./sdf.ts";
 
@@ -17,10 +17,13 @@ export interface PartMesh extends RawMesh {
 }
 
 export interface AvatarMeshes {
+  style: AvatarStyle;
   body: PartMesh;
   hair: (PartMesh & { print: boolean }) | null;
   facialHair: PartMesh | null;
   outfit: PartMesh;
+  /** Sculpted brows (toon only; the soft style paints them). */
+  brows: PartMesh | null;
   /** Top of the hair (or head), for framing. */
   top: number;
 }
@@ -70,8 +73,9 @@ function faceUVs(m: RawMesh): Float32Array {
   return uv;
 }
 
-export function meshAvatar(p: AvatarParams, quality = 1): AvatarMeshes {
-  const rig = buildRig(p);
+export function meshAvatar(p: AvatarParams, quality = 1, style: AvatarStyle = "soft"): AvatarMeshes {
+  const rig = buildRig(p, style);
+  const toon = style === "toon";
 
   const bodyRaw = polygonize(rig.body, rig.bodyBox, 0.028 / quality);
   const body: PartMesh = { ...bodyRaw, uvs: faceUVs(bodyRaw) };
@@ -97,7 +101,8 @@ export function meshAvatar(p: AvatarParams, quality = 1): AvatarMeshes {
       } else {
         // Darker toward the scalp, lighter on the outer clumps.
         const depth = Math.min(1, Math.max(0, rig.skull(x, y, z) / 0.35));
-        v = (0.78 + 0.22 * depth) * (0.92 + 0.16 * noise3(x * 3, y * 3, z * 3));
+        // Toon hair is cleaner: the sculpted grooves carry the detail, not color noise.
+        v = toon ? (0.82 + 0.18 * depth) * (0.97 + 0.06 * noise3(x * 2, y * 2, z * 2)) : (0.78 + 0.22 * depth) * (0.92 + 0.16 * noise3(x * 3, y * 3, z * 3));
       }
       colors[i * 3] = c[0] * v; colors[i * 3 + 1] = c[1] * v; colors[i * 3 + 2] = c[2] * v;
     }
@@ -130,13 +135,23 @@ export function meshAvatar(p: AvatarParams, quality = 1): AvatarMeshes {
   }
   smoothColors(outfitRaw.indices, outfitColors, 2);
 
-  return { body, hair, facialHair, outfit: { ...outfitRaw, colors: outfitColors }, top };
+  let brows: PartMesh | null = null;
+  if (toon) {
+    const shape = buildBrows(p, rig);
+    const raw = polygonize(shape.sdf, shape.box, shape.cell / quality);
+    const base = linearRGB(p.brows.color);
+    const colors = new Float32Array(raw.positions.length);
+    for (let i = 0; i < colors.length; i += 3) colors.set(base, i);
+    brows = { ...raw, colors };
+  }
+
+  return { style, body, hair, facialHair, outfit: { ...outfitRaw, colors: outfitColors }, brows, top };
 }
 
 /** Every typed array in the result, for zero-copy postMessage. */
 export function transferables(m: AvatarMeshes): ArrayBuffer[] {
   const out: ArrayBuffer[] = [];
-  for (const part of [m.body, m.hair, m.facialHair, m.outfit]) {
+  for (const part of [m.body, m.hair, m.facialHair, m.outfit, m.brows]) {
     if (!part) continue;
     for (const a of [part.positions, part.normals, part.indices, part.colors, part.uvs]) if (a) out.push(a.buffer as ArrayBuffer);
   }

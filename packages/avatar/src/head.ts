@@ -7,11 +7,15 @@ import type { AvatarParams } from "./params.ts";
 import { type SDF, capsule, ellipsoid, smax, smin, sphere } from "./sdf.ts";
 import { type Box, surfaceZ } from "./mesher.ts";
 
+/** "soft" is the Memoji-like default; "toon" is an animated-film look with bigger eyes and head. */
+export type AvatarStyle = "soft" | "toon";
+
 export const SHOULDER_Y = -1.72;
 /** Where the bust is cut off. */
 export const BODY_BOTTOM = -2.25;
 
 export interface Rig {
+  style: AvatarStyle;
   /** Skin surface: head, neck and shoulders. */
   body: SDF;
   bodyBox: Box;
@@ -31,13 +35,17 @@ export interface Rig {
   noseTip: [number, number, number];
 }
 
-export function buildRig(p: AvatarParams): Rig {
+export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
   const masc = p.presentation === "masculine";
-  const { width: fw, jaw: jw, chin: ch, cheeks: ck, ears: er } = p.face;
+  const toon = style === "toon";
+  const { width: fw, jaw: jw, chin: ch, ears: er } = p.face;
+  // Toon: rounder cheeks and a slightly fuller cranium, so the head reads bigger and friendlier.
+  const ck = p.face.cheeks * (toon ? 1.12 : 1);
+  const skullW = toon ? 0.95 : 0.92, skullH = toon ? 1.04 : 1;
   const smileCheek = p.expression === "grin" || p.expression === "laugh" ? 1.08 : p.expression === "smile" || p.expression === "wink" ? 1.04 : 1;
 
   const skullCenter: [number, number, number] = [0, 0.15, -0.05];
-  const skull: SDF = (x, y, z) => ellipsoid(x, y - 0.15, z + 0.05, 0.92 * fw, 1.0, 0.98);
+  const skull: SDF = (x, y, z) => ellipsoid(x, y - 0.15, z + 0.05, skullW * fw, skullH, 0.98);
 
   const face: SDF = (x, y, z) => {
     let d = skull(x, y, z);
@@ -51,24 +59,26 @@ export function buildRig(p: AvatarParams): Rig {
   };
 
   // Landmarks, measured on the featureless face.
-  const r = 0.165 * p.eyes.size;
-  const ex = 0.335 * p.eyes.spacing * fw;
-  const ey = 0.02;
+  const r = (toon ? 0.215 : 0.165) * p.eyes.size;
+  const ex = (toon ? 0.36 : 0.335) * p.eyes.spacing * fw;
+  const ey = toon ? 0.0 : 0.02;
   const ez = surfaceZ(face, ex, ey) - 0.62 * r;
   const browY = ey + r + 0.13;
   const my = -0.53;
   const mz = surfaceZ(face, 0, my);
-  const mw = 0.2 * p.mouth.width;
+  const mw = 0.2 * p.mouth.width * (toon ? 1.15 : 1);
 
-  const ns = p.nose.size, nw = p.nose.width;
+  // Toon noses are bigger and rounder.
+  const ns = p.nose.size * (toon ? 1.22 : 1), nw = p.nose.width * (toon ? 1.08 : 1);
   const nzTip = surfaceZ(face, 0, -0.3) + 0.1 * ns;
   const nzTop = surfaceZ(face, 0, ey) - 0.06;
   const noseTip: [number, number, number] = [0, -0.31, nzTip];
   const nzWing = surfaceZ(face, 0.1, -0.33);
 
   const earX = 0.9 * fw, earY = -0.02, earZ = -0.1, earH = 0.21 * er;
-  const neckR = masc ? 0.4 : 0.35;
-  const shoulderW = masc ? 0.98 : 0.84;
+  // A slimmer neck and shoulders make the toon head look larger without changing the framing.
+  const neckR = (masc ? 0.4 : 0.35) * (toon ? 0.86 : 1);
+  const shoulderW = (masc ? 0.98 : 0.84) * (toon ? 0.9 : 1);
 
   const head: SDF = (x, y, z) => {
     let d = face(x, y, z);
@@ -115,6 +125,7 @@ export function buildRig(p: AvatarParams): Rig {
   };
 
   return {
+    style,
     body,
     bodyBox: { min: [-1.55, BODY_BOTTOM - 0.02, -1.15], max: [1.55, 1.25, 1.35] },
     face: head,

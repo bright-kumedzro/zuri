@@ -16,6 +16,7 @@ import {
   type Avatar,
   type AvatarOptions,
   type AvatarParams,
+  type AvatarStyle,
 } from "@brightkumedzro/zuri-avatar";
 import { LANGS, detectLang, lang, setLang, t, type Key, type Lang } from "./i18n.ts";
 import { CURRENCIES, detectCurrency, formatPrice, yearly } from "./pricing.ts";
@@ -68,10 +69,10 @@ class LiveTile {
     canvas.addEventListener("pointercancel", () => (this.drag = null));
   }
 
-  async show(params: AvatarParams) {
+  async show(params: AvatarParams, style: AvatarStyle = "soft") {
     const id = ++this.request;
     const timer = setTimeout(() => this.spinner.classList.add("on"), 150);
-    const avatar = await factory.build(params);
+    const avatar = await factory.build(params, 1, style);
     clearTimeout(timer);
     if (id !== this.request) return disposeAvatar(avatar);
     this.spinner.classList.remove("on");
@@ -158,7 +159,9 @@ function setHeroSeed(value: string, from?: HTMLInputElement) {
   clearTimeout(heroTimer);
   heroTimer = window.setTimeout(() => hero.show(generateAvatar(heroSeed)), 300);
   $("#style-flat").innerHTML = createFlatAvatar(heroSeed, { size: 512 });
-  $("#style-3d").parentElement!.style.background = generateAvatar(heroSeed).background;
+  const bg = generateAvatar(heroSeed).background;
+  $("#style-3d").parentElement!.style.background = bg;
+  $("#style-toon").parentElement!.style.background = bg;
 }
 heroInput.addEventListener("input", () => setHeroSeed(heroInput.value, heroInput));
 playInput.addEventListener("input", () => setHeroSeed(playInput.value, playInput));
@@ -215,7 +218,7 @@ $("#hair-row").addEventListener("click", (e) => {
 for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-look]")) {
   a.addEventListener("click", (e) => {
     e.preventDefault();
-    openBuilder({ seed: heroSeed, look: a.dataset.look ? "flat" : undefined });
+    openBuilder({ seed: heroSeed, look: (a.dataset.look || undefined) as BuilderState["look"] });
   });
 }
 
@@ -225,7 +228,7 @@ interface BuilderState extends AvatarOptions {
   seed: string;
   transparent?: boolean;
   /** Undefined is 3D. */
-  look?: "flat";
+  look?: "toon" | "flat";
 }
 let state: BuilderState = { seed: "kwame" };
 const builderSeed = $<HTMLInputElement>("#builder-seed");
@@ -252,7 +255,7 @@ function updateBuilder(immediate = false) {
   dlAlt.textContent = t(dlAlt.dataset.i18n as Key);
   clearTimeout(builderTimer);
   if (flat) builderFlat.innerHTML = flatSVG();
-  else builderTimer = window.setTimeout(() => builder.show(params), immediate ? 0 : 250);
+  else builderTimer = window.setTimeout(() => builder.show(params, state.look === "toon" ? "toon" : "soft"), immediate ? 0 : 250);
   syncControls();
 }
 
@@ -355,7 +358,7 @@ function swatches(labelKey: Key, items: () => { value: string | undefined; color
 function buildControls() {
   const root = $("#controls");
   for (const c of controls.splice(0)) c.el.remove();
-  segmented("builder.look", "look", () => [{ value: undefined, label: t("opt.3d") }, { value: "flat", label: t("opt.flat") }], true);
+  segmented("builder.look", "look", () => [{ value: undefined, label: t("opt.3d") }, { value: "toon", label: t("opt.toon") }, { value: "flat", label: t("opt.flat") }], true);
   segmented("builder.style", "presentation", () => [auto(), { value: "feminine", label: t("opt.feminine") }, { value: "masculine", label: t("opt.masculine") }]);
   segmented("builder.glasses", "glasses", () => [auto(), { value: "none", label: t("opt.none") }, { value: "round", label: t("opt.round") }, { value: "square", label: t("opt.square") }]);
   swatches(
@@ -401,7 +404,8 @@ function syncControls() {
 
 function builderCode(): string {
   const { seed, transparent, look, ...options } = state;
-  const opts = Object.entries(options).filter(([, v]) => v !== undefined);
+  const opts: [string, unknown][] = Object.entries(options).filter(([, v]) => v !== undefined);
+  if (look === "toon") opts.unshift(["style", "toon"]);
   if (look === "flat") {
     const all = [...opts, ["size", 512], ...(transparent ? [["transparent", true]] : [])];
     return `import { createFlatAvatar } from "@brightkumedzro/zuri-avatar/flat";
@@ -510,9 +514,18 @@ for (const name of Object.keys(SNIPPETS)) {
 }
 $("#copy-snippet").addEventListener("click", (e) => copy(code.textContent ?? "", e.currentTarget as HTMLElement));
 
+let toonRequest = 0;
+async function renderToonCard() {
+  const id = ++toonRequest, seed = heroSeed;
+  const avatar = await factory.create(seed, { style: "toon", quality: 0.8 });
+  if (id === toonRequest) $<HTMLImageElement>("#style-toon").src = snapshotAvatar(avatar, { size: 512, transparent: true });
+  disposeAvatar(avatar);
+}
+
 function updatePreviews(avatar: Avatar) {
   const src = hero.snapshot(128, true) ?? snapshotAvatar(avatar, { size: 128, transparent: true });
   for (const img of document.querySelectorAll<HTMLImageElement>("[data-avatar]")) img.src = src;
+  renderToonCard();
   const style3d = $<HTMLImageElement>("#style-3d");
   style3d.src = hero.snapshot(512, true) ?? style3d.src;
   const name = heroSeed.split("@")[0]!;

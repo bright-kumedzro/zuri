@@ -2,7 +2,7 @@
 
 import * as THREE from "three";
 import type { AvatarParams, Expression } from "./params.ts";
-import { buildRig, type Rig } from "./head.ts";
+import { buildRig, type AvatarStyle, type Rig } from "./head.ts";
 import { makeCanvas, paintFace, shade } from "./face.ts";
 import { meshAvatar, type AvatarMeshes, type PartMesh } from "./mesh.ts";
 import { Random } from "@zuri/core/random";
@@ -10,6 +10,8 @@ import { Random } from "@zuri/core/random";
 export interface BuildOptions {
   /** Grid resolution multiplier. 1 = default quality; 0.75 is faster for thumbnails. */
   quality?: number;
+  /** "soft" (default, Memoji-like) or "toon" (animated-film look). The same seed is the same person in both. */
+  style?: AvatarStyle;
 }
 
 const linear = (hex: string) => new THREE.Color(hex);
@@ -25,20 +27,25 @@ function geometry(m: PartMesh): THREE.BufferGeometry {
   return g;
 }
 
-function skinMaterial(p: AvatarParams, map?: THREE.Texture): THREE.MeshPhysicalMaterial {
+function skinMaterial(p: AvatarParams, toon: boolean, map?: THREE.Texture): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     map: map ?? null,
     color: map ? 0xffffff : linear(p.skin),
-    roughness: 0.55,
-    specularIntensity: 0.35,
-    sheen: 0.5,
+    // Toon skin is smooth with a soft gloss, like a rendered animated-film character.
+    roughness: toon ? 0.42 : 0.55,
+    specularIntensity: toon ? 0.45 : 0.35,
+    clearcoat: toon ? 0.22 : 0,
+    clearcoatRoughness: 0.45,
+    sheen: toon ? 0.35 : 0.5,
     sheenRoughness: 0.5,
     sheenColor: linear(p.skin).lerp(new THREE.Color(1, 0.85, 0.8), 0.35),
   });
 }
 
-function eyeTexture(color: string): THREE.Texture {
+function eyeTexture(color: string, toon: boolean): THREE.Texture {
   const W = 64, H = 512;
+  // Bands in degrees from the front of the eyeball. Toon eyes get a bigger iris and pupil.
+  const [pupil, irisStart, iris, ringA, ringB] = toon ? [21, 22, 52, 48, 56] : [18, 19, 45, 41, 49];
   const c = makeCanvas(W, H);
   const ctx = c.getContext("2d") as CanvasRenderingContext2D;
   const deg = (d: number) => (d / 180) * H;
@@ -48,26 +55,26 @@ function eyeTexture(color: string): THREE.Texture {
   sclera.addColorStop(1, "#d9cbc4");
   ctx.fillStyle = sclera;
   ctx.fillRect(0, 0, W, H);
-  const iris = ctx.createLinearGradient(0, 0, 0, deg(45));
-  iris.addColorStop(0, shade(color, 0.7));
-  iris.addColorStop(0.45, shade(color, 1.25));
-  iris.addColorStop(0.8, color);
-  iris.addColorStop(1, shade(color, 0.45));
-  ctx.fillStyle = iris;
-  ctx.fillRect(0, 0, W, deg(45));
+  const irisFill = ctx.createLinearGradient(0, 0, 0, deg(iris));
+  irisFill.addColorStop(0, shade(color, 0.7));
+  irisFill.addColorStop(0.45, shade(color, toon ? 1.4 : 1.25));
+  irisFill.addColorStop(0.8, color);
+  irisFill.addColorStop(1, shade(color, 0.45));
+  ctx.fillStyle = irisFill;
+  ctx.fillRect(0, 0, W, deg(iris));
   // Radial streaks.
   for (let i = 0; i < W; i += 2) {
-    ctx.fillStyle = shade(color, i % 6 === 0 ? 1.5 : 0.75, 0.35);
-    ctx.fillRect(i, deg(19), 1, deg(22));
+    ctx.fillStyle = shade(color, i % 6 === 0 ? 1.5 : 0.75, toon ? 0.2 : 0.35);
+    ctx.fillRect(i, deg(irisStart), 1, deg(iris - irisStart - 4));
   }
   ctx.fillStyle = "#0b0807";
-  ctx.fillRect(0, 0, W, deg(18));
+  ctx.fillRect(0, 0, W, deg(pupil));
   // Soft limbal ring.
-  const ring = ctx.createLinearGradient(0, deg(41), 0, deg(49));
+  const ring = ctx.createLinearGradient(0, deg(ringA), 0, deg(ringB));
   ring.addColorStop(0, shade(color, 0.35, 0.9));
   ring.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = ring;
-  ctx.fillRect(0, deg(41), W, deg(8));
+  ctx.fillRect(0, deg(ringA), W, deg(ringB - ringA));
   const t = new THREE.CanvasTexture(c as HTMLCanvasElement);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
@@ -100,7 +107,9 @@ function buildEye(p: AvatarParams, rig: Rig, side: 1 | -1, eyeMat: THREE.Materia
   ball.rotation.y = -0.06;
   group.add(ball);
 
-  for (const [dir, size] of [[new THREE.Vector3(-0.38, 0.42, 0.82), 0.14], [new THREE.Vector3(0.3, -0.3, 0.9), 0.06]] as const) {
+  const toon = rig.style === "toon";
+  const catchlights = [[new THREE.Vector3(-0.38, 0.42, 0.82), toon ? 0.2 : 0.14], [new THREE.Vector3(0.3, -0.3, 0.9), toon ? 0.09 : 0.06]] as const;
+  for (const [dir, size] of catchlights) {
     const spot = new THREE.Mesh(
       new THREE.CircleGeometry(r * size, 20),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, toneMapped: false }),
@@ -239,12 +248,14 @@ export interface Avatar extends THREE.Group {
 }
 
 export function buildAvatar(p: AvatarParams, options: BuildOptions = {}): Avatar {
-  return assembleAvatar(p, meshAvatar(p, options.quality ?? 1));
+  return assembleAvatar(p, meshAvatar(p, options.quality ?? 1, options.style ?? "soft"));
 }
 
 /** Cheap half of building: wrap precomputed meshes (possibly from a worker) with materials, eyes and accessories. */
 export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
-  const rig = buildRig(p);
+  const style = data.style ?? "soft";
+  const toon = style === "toon";
+  const rig = buildRig(p, style);
   const group = new THREE.Group() as Avatar;
   group.name = `zuri:${p.seed}`;
   const meshes: THREE.Mesh[] = [];
@@ -252,12 +263,12 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
   const faceTex = new THREE.CanvasTexture(paintFace(p, rig) as HTMLCanvasElement);
   faceTex.colorSpace = THREE.SRGBColorSpace;
   faceTex.anisotropy = 4;
-  const body = new THREE.Mesh(geometry(data.body), skinMaterial(p, faceTex));
+  const body = new THREE.Mesh(geometry(data.body), skinMaterial(p, toon, faceTex));
   body.name = "skin";
   meshes.push(body);
 
-  const eyeMat = new THREE.MeshPhysicalMaterial({ map: eyeTexture(p.eyes.color), roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.04 });
-  const lidMat = skinMaterial(p);
+  const eyeMat = new THREE.MeshPhysicalMaterial({ map: eyeTexture(p.eyes.color, toon), roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.04 });
+  const lidMat = skinMaterial(p, toon);
   const eyes = ([1, -1] as const).map((s) => buildEye(p, rig, s, eyeMat, lidMat));
   for (const e of eyes) group.add(e.group);
 
@@ -268,11 +279,14 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
       geometry(data.hair),
       new THREE.MeshPhysicalMaterial({
         vertexColors: true,
-        roughness: print ? 0.75 : 0.5,
+        // Toon hair is glossy, so the sculpted grooves catch the light.
+        roughness: print ? 0.75 : toon ? 0.34 : 0.5,
         sheen: print ? 0.3 : 0.5,
         sheenRoughness: 0.45,
         sheenColor: print ? new THREE.Color(0xffffff) : base.clone().lerp(new THREE.Color(1, 1, 1), 0.35),
-        specularIntensity: 0.3,
+        specularIntensity: toon ? 0.5 : 0.3,
+        clearcoat: toon && !print ? 0.5 : 0,
+        clearcoatRoughness: 0.3,
       }),
     );
     m.name = "hair";
@@ -286,6 +300,12 @@ export function assembleAvatar(p: AvatarParams, data: AvatarMeshes): Avatar {
       new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.7, sheen: 0.6, sheenColor: base.clone().lerp(new THREE.Color(1, 1, 1), 0.3) }),
     );
     m.name = "facialHair";
+    meshes.push(m);
+  }
+
+  if (data.brows) {
+    const m = new THREE.Mesh(geometry(data.brows), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, sheen: 0.4, specularIntensity: 0.3 }));
+    m.name = "brows";
     meshes.push(m);
   }
 

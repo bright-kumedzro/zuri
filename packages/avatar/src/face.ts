@@ -41,7 +41,8 @@ export function paintFace(p: AvatarParams, rig: Rig, size = 1024): HTMLCanvasEle
   blush(ctx, p);
   if (p.freckles > 0) freckles(ctx, p, rng);
   if (p.facialHair === "stubble" || p.facialHair === "beard" || p.facialHair === "goatee") stubble(ctx, p, rng);
-  brows(ctx, p, rig);
+  // Toon brows are sculpted in 3D (see mesh.ts) rather than painted.
+  if (rig.style !== "toon") brows(ctx, p, rig);
   mouth(ctx, p, rig);
   return canvas;
 }
@@ -108,15 +109,24 @@ function browLift(e: Expression, side: number): { lift: number; inner: number } 
   }
 }
 
-function brows(ctx: Ctx, p: AvatarParams, rig: Rig) {
-  const t = 0.05 * p.brows.thickness;
+/** Inner, middle and outer points of one brow (side -1 or 1) in head units, plus the arch height. */
+export function browCurve(p: AvatarParams, rig: Rig, s: number) {
   const arch = 0.05 * p.brows.arch;
   const spread = rig.eye.x / 0.335;
+  const { lift, inner } = browLift(p.expression, s);
+  const by = rig.browY + lift;
+  return {
+    arch,
+    inner: [s * 0.11 * spread, by + inner] as const,
+    middle: [s * 0.31 * spread, by + arch] as const,
+    outer: [s * 0.53 * spread, by - 0.01 + arch * 0.1] as const,
+  };
+}
+
+function brows(ctx: Ctx, p: AvatarParams, rig: Rig) {
+  const t = 0.05 * p.brows.thickness;
   for (const s of [-1, 1]) {
-    const { lift, inner } = browLift(p.expression, s);
-    const by = rig.browY + lift;
-    const ix = s * 0.11 * spread, mx = s * 0.31 * spread, ox = s * 0.53 * spread;
-    const iy = by + inner, my = by + arch, oy = by - 0.01 + arch * 0.1;
+    const { arch, inner: [ix, iy], middle: [mx, my], outer: [ox, oy] } = browCurve(p, rig, s);
     ctx.beginPath();
     ctx.moveTo(ix, iy + t * 0.55);
     ctx.quadraticCurveTo(mx, my + t * 0.6, ox, oy);

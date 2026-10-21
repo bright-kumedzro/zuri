@@ -40,6 +40,7 @@
           <a href="#images">Images (PNG, WebP)</a>
           <a href="#threejs">In a three.js scene</a>
           <a href="#customise">Customising traits</a>
+          <a href="#toon">Toon 3D</a>
           <a href="#glb">Exporting .glb</a>
           <a href="#flat">Flat 2D avatars</a>
           <a href="#frameworks">React, Vue and others</a>
@@ -71,12 +72,13 @@
               string always gives the same face, so there is nothing to upload, store or sync. Everything is generated
               from code in the browser with <a href="https://threejs.org" target="_blank" rel="noreferrer">three.js</a>.
             </p>
-            <p>There are two styles, and the same seed gives the same person in both:</p>
+            <p>There are three styles, and the same seed gives the same person in all of them:</p>
             <ul>
+              <li><b>Toon 3D</b>: an animated-film look with big expressive eyes and sculpted, glossy hair. Same outputs as 3D. See <a href="#toon">Toon 3D</a>.</li>
               <li><b>3D</b>: live in a canvas (it blinks, sways and can be rotated), as a PNG/WebP/JPEG image, or as a <code>.glb</code> model for Blender, Unity and AR.</li>
               <li><b>Flat 2D</b>: a vector illustration as a small SVG string. It needs no WebGL, so it also works on servers, in emails and in native apps. See <a href="#flat">Flat 2D avatars</a>.</li>
             </ul>
-            <p>Toon 3D, full-body characters and realistic digital humans are planned.</p>
+            <p>Full-body characters and realistic digital humans are planned.</p>
             <p class="note">Not a developer? Use the <a href="/#builder">builder</a> to design a face and download it as a PNG or .glb, no code needed.</p>
           </section>
 
@@ -210,6 +212,19 @@ renderer.setAnimationLoop((ms) =&gt; {
             </p>
           </section>
 
+          <section id="toon">
+            <h3>Toon 3D</h3>
+            <p>
+              Pass <code>style: "toon"</code> for an animated-film look: a bigger, rounder head, large eyes with big
+              catchlights, sculpted brows, chunky glossy hair and smooth skin. It's the same person as the default
+              <code>"soft"</code> style, and everything else (live 3D, images, <code>.glb</code>, every trait option)
+              works the same way.
+            </p>
+            <pre><code><span class="k">const</span> avatar = <span class="k">await</span> zuri.create(user.id, { style: <span class="s">"toon"</span>, hair: <span class="s">"afro"</span> });
+img.src = snapshotAvatar(avatar, { size: <span class="s">256</span> });</code></pre>
+            <p><code>createAvatar</code> and <code>renderAvatarImage</code> accept <code>style</code> too.</p>
+          </section>
+
           <section id="glb">
             <h3>Exporting .glb</h3>
             <p>Use three.js's <code>GLTFExporter</code> to save an avatar as a binary glTF file:</p>
@@ -331,7 +346,7 @@ watchEffect(<span class="k">async</span> () =&gt; {
             </p>
             <table>
               <tr><th>Method</th><th>Description</th></tr>
-              <tr><td><code>create(seed, options?)</code></td><td>Returns <code>Promise&lt;Avatar&gt;</code>. Accepts all <a href="#api-options">AvatarOptions</a> plus <code>quality</code>.</td></tr>
+              <tr><td><code>create(seed, options?)</code></td><td>Returns <code>Promise&lt;Avatar&gt;</code>. Accepts all <a href="#api-options">AvatarOptions</a> plus <code>quality</code> and <code>style</code>.</td></tr>
               <tr><td><code>build(params, quality?)</code></td><td>Builds from <code>AvatarParams</code> you got from <code>generateAvatar</code> (and possibly edited).</td></tr>
               <tr><td><code>dispose()</code></td><td>Stops all workers.</td></tr>
             </table>
@@ -409,6 +424,7 @@ generateAvatar(<span class="s">"ada"</span>).hair.style;              <span clas
               <tr><td><code>facialHair</code></td><td><code>"none"</code>, <code>"stubble"</code>, <code>"mustache"</code>, <code>"goatee"</code>, <code>"beard"</code></td></tr>
               <tr><td><code>background</code></td><td>Any hex colour</td></tr>
               <tr><td><code>quality</code></td><td>Mesh detail, default <code>1</code>. <code>0.75</code> is faster for thumbnails.</td></tr>
+              <tr><td><code>style</code></td><td><code>"soft"</code> (default) or <code>"toon"</code>. 3D only; see <a href="#toon">Toon 3D</a>.</td></tr>
             </table>
           </section>
 

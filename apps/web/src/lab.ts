@@ -1,5 +1,5 @@
 /**
- * Dev contact sheet: /lab.html?seeds=a,b,c&cols=4&size=320&framing=bust&post=sheet.jpg (add &style=flat for 2D)
+ * Dev contact sheet: /lab.html?seeds=a,b,c&cols=4&size=320&framing=bust&post=sheet.jpg (&style=flat for 2D, &style=toon for toon 3D)
  * Builds every seed on the worker pool, tiles the renders, and optionally POSTs the sheet to :5199.
  */
 
@@ -32,7 +32,7 @@ await Promise.all(
     if (q.get("style") === "flat") {
       img.src = flatAvatarDataURL(createFlatAvatar(seed, { ...opts, size }));
     } else {
-      const avatar = await factory.create(seed, { ...opts, quality });
+      const avatar = await factory.create(seed, { ...opts, quality, style: q.get("style") === "toon" ? "toon" : "soft" });
       img.src = snapshotAvatar(avatar, { size, framing });
       // ?export=dir also saves each render as dir/<seed>.webp through the receiver.
       const dir = q.get("export");

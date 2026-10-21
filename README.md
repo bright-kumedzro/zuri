@@ -21,7 +21,7 @@ The same seed gives the same person in every style, because every style draws th
 |---|---|---|
 | Soft 3D (Memoji-like) | Shipped | Live three.js, PNG/WebP, .glb |
 | Flat 2D (vector illustration) | Shipped | SVG string, no DOM or WebGL (`@brightkumedzro/zuri-avatar/flat`) |
-| Toon 3D (Pixar-like: exaggerated, sculpted hair) | Planned | A variant of the 3D engine |
+| Toon 3D (Pixar-like: big eyes, sculpted glossy hair) | Shipped | Same as soft 3D, with `style: "toon"` |
 | Social 3D (Meta-like: natural proportions) | Planned | A variant of the 3D engine |
 | Full-body 3D (game and metaverse characters) | Planned | Needs bodies and rigging |
 | Realistic digital humans | Prototype | The v0 MakeHuman engine below |

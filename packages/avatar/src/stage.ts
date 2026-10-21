@@ -146,7 +146,7 @@ export function snapshotAvatar(avatar: Avatar, options: SnapshotOptions = {}): s
 
 /** Build and render a seed on the main thread. Prefer AvatarFactory + snapshotAvatar for many images. */
 export function renderAvatarImage(seed: string, options: ImageOptions = {}): string {
-  const avatar = buildAvatar(generateAvatar(seed, options), { quality: options.quality ?? 0.8 });
+  const avatar = buildAvatar(generateAvatar(seed, options), { quality: options.quality ?? 0.8, style: options.style });
   const url = snapshotAvatar(avatar, options);
   disposeAvatar(avatar);
   return url;

@@ -13,6 +13,7 @@ export { buildAvatar, disposeAvatar, type Avatar, type BuildOptions } from "./bu
 export { AvatarStage, renderAvatarImage, snapshotAvatar, type Framing, type ImageOptions, type SnapshotOptions, type StageOptions } from "./stage.ts";
 export { AvatarFactory, type FactoryOptions } from "./factory.ts";
 export { meshAvatar, type AvatarMeshes } from "./mesh.ts";
+export type { AvatarStyle } from "./head.ts";
 export { assembleAvatar } from "./build.ts";
 export { createFlatAvatar, flatAvatarDataURL, flatAvatarSVG, rasterizeSVG, type FlatOptions } from "./flat.ts";
 

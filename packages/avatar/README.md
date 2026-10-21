@@ -29,6 +29,14 @@ stage.show(avatar);
 stage.render();
 ```
 
+## Toon 3D
+
+The same person with an animated-film look: big expressive eyes, sculpted glossy hair, smooth skin.
+
+```ts
+const avatar = await zuri.create("ada@example.com", { style: "toon" });
+```
+
 ## Flat 2D
 
 ```ts
