@@ -35,11 +35,24 @@ const CAST = [
   "kofi", "mei", "leo", "ama", "yaw", "priya", "diego", "nia",
   "efua", "hiro", "layla", "kojo", "ines", "sena", "musa", "eli",
 ];
-/** Cast members that show off each hair texture. */
+/** Cast members that show off each hair texture (their natural hair, with the right look). */
 const HAIR_SHOWCASE: [string, string][] = [
-  ["afro", "lin"], ["cornrows", "sena"], ["headwrap", "eli"], ["curly", "sofia"],
-  ["bun", "kofi"], ["long", "yaw"], ["bob", "tunde"], ["fade", "ines"],
+  ["afro", "lin"], ["cornrows", "amara"], ["headwrap", "mei"], ["curly", "zara"],
+  ["bun", "sena"], ["long", "maya"], ["bob", "efua"], ["fade", "kwame"],
 ];
+
+/**
+ * Names on this site are seeds, and a seed's look is random. So every named avatar here sets its look to match
+ * the name. (Typed names that aren't listed stay on "auto".)
+ */
+const LOOK: Record<string, "feminine" | "masculine"> = {};
+for (const n of "ama amara efua ines layla lin maya mei nia priya sena sofia zara adaeze amina sofía priya thandiwe yuki fatou emma léa zanele ingrid".split(" ")) LOOK[n] = "feminine";
+for (const n of "diego eli hiro kofi kojo kwame leo musa obi tunde yaw kwabena chen lukas mateus omar".split(" ")) LOOK[n] = "masculine";
+/** The look for a name like "Kwame" or "Sofía-4821", if it's one we know. */
+const named = (seed: string): AvatarOptions => {
+  const presentation = LOOK[seed.trim().toLowerCase().replace(/-\d+$/, "")];
+  return presentation ? { presentation } : {};
+};
 
 const factory = new AvatarFactory();
 
@@ -161,9 +174,9 @@ function setHeroSeed(value: string, from?: HTMLInputElement) {
   if (from !== playInput) playInput.value = heroSeed;
   renderCode();
   clearTimeout(heroTimer);
-  heroTimer = window.setTimeout(() => hero.show(generateAvatar(heroSeed)), 300);
-  $("#style-flat").innerHTML = createFlatAvatar(heroSeed, { size: 512 });
-  const bg = generateAvatar(heroSeed).background;
+  heroTimer = window.setTimeout(() => hero.show(generateAvatar(heroSeed, named(heroSeed))), 300);
+  $("#style-flat").innerHTML = createFlatAvatar(heroSeed, { ...named(heroSeed), size: 512 });
+  const bg = generateAvatar(heroSeed, named(heroSeed)).background;
   $("#style-3d").parentElement!.style.background = bg;
   $("#style-toon").parentElement!.style.background = bg;
 }
@@ -171,7 +184,7 @@ heroInput.addEventListener("input", () => setHeroSeed(heroInput.value, heroInput
 playInput.addEventListener("input", () => setHeroSeed(playInput.value, playInput));
 $("#hero-form").addEventListener("submit", (e) => {
   e.preventDefault();
-  openBuilder({ seed: heroSeed });
+  openBuilder({ seed: heroSeed, ...named(heroSeed) });
 });
 $("#copy-install").addEventListener("click", (e) => copy("npm i @brightkumedzro/zuri-avatar three", e.currentTarget as HTMLElement));
 
@@ -203,7 +216,7 @@ for (const tab of document.querySelectorAll<HTMLButtonElement>("#aud-tabs [data-
 $("#tones").innerHTML = SKIN_TONES.map((c, i) => `<button type="button" style="background:${c}" data-tone="${i}" aria-label="Skin tone ${i + 1}"></button>`).join("");
 $("#tones").addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>("[data-tone]");
-  if (b) openBuilder({ seed: state.seed, skin: Number(b.dataset.tone) });
+  if (b) openBuilder({ seed: state.seed, presentation: state.presentation, skin: Number(b.dataset.tone) });
 });
 function renderHairRow() {
   $("#hair-row").innerHTML = HAIR_SHOWCASE.map(
@@ -214,7 +227,7 @@ $("#hair-row").addEventListener("click", (e) => {
   const a = (e.target as HTMLElement).closest<HTMLElement>("[data-hair]");
   if (!a) return;
   e.preventDefault();
-  openBuilder({ seed: a.dataset.seed!, hair: a.dataset.hair as AvatarOptions["hair"] });
+  openBuilder({ seed: a.dataset.seed!, ...named(a.dataset.seed!), hair: a.dataset.hair as AvatarOptions["hair"] });
 });
 
 // --- Styles -------------------------------------------------------------------------------------
@@ -222,7 +235,7 @@ $("#hair-row").addEventListener("click", (e) => {
 for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-look]")) {
   a.addEventListener("click", (e) => {
     e.preventDefault();
-    openBuilder({ seed: heroSeed, look: (a.dataset.look || undefined) as BuilderState["look"] });
+    openBuilder({ seed: heroSeed, ...named(heroSeed), look: (a.dataset.look || undefined) as BuilderState["look"] });
   });
 }
 
@@ -234,7 +247,7 @@ interface BuilderState extends AvatarOptions {
   /** Undefined is 3D. */
   look?: "toon" | "flat";
 }
-let state: BuilderState = { seed: "kwame" };
+let state: BuilderState = { seed: "kwame", ...named("kwame") };
 const builderSeed = $<HTMLInputElement>("#builder-seed");
 const builderFlat = $("#builder-flat");
 const builderCanvas = $<HTMLCanvasElement>("#builder-canvas");
@@ -272,11 +285,14 @@ function openBuilder(next: BuilderState) {
 
 builderSeed.addEventListener("input", () => {
   state.seed = builderSeed.value.trim();
+  // A new name brings its own look (or back to Auto for names we don't know).
+  state.presentation = named(state.seed).presentation;
   updateBuilder();
 });
 const NAMES = ["Adaeze", "Kwabena", "Amina", "Chen", "Sofía", "Lukas", "Priya", "Thandiwe", "Mateus", "Yuki", "Fatou", "Emma", "Kofi", "Léa", "Omar", "Zanele", "Diego", "Ingrid"];
 $("#surprise").addEventListener("click", () => {
-  state = { seed: `${NAMES[Math.floor(Math.random() * NAMES.length)]}-${Math.floor(Math.random() * 9000 + 1000)}` };
+  const name = NAMES[Math.floor(Math.random() * NAMES.length)]!;
+  state = { seed: `${name}-${Math.floor(Math.random() * 9000 + 1000)}`, ...named(name) };
   builderSeed.value = state.seed;
   updateBuilder(true);
 });
@@ -456,7 +472,7 @@ function buildControls() {
   reset.className = "field wide";
   reset.innerHTML = `<div><button type="button" class="tertiary sm">${t("builder.reset")}</button></div>`;
   reset.querySelector("button")!.addEventListener("click", () => {
-    state = { seed: state.seed, look: state.look };
+    state = { seed: state.seed, look: state.look, ...named(state.seed) };
     updateBuilder();
   });
   controls.push({ el: reset, sync: () => {} });
@@ -582,7 +598,7 @@ $("#copy-snippet").addEventListener("click", (e) => copy(code.textContent ?? "",
 let toonRequest = 0;
 async function renderToonCard() {
   const id = ++toonRequest, seed = heroSeed;
-  const avatar = await factory.create(seed, { style: "toon", quality: 0.8 });
+  const avatar = await factory.create(seed, { ...named(seed), style: "toon", quality: 0.8 });
   if (id === toonRequest) $<HTMLImageElement>("#style-toon").src = snapshotAvatar(avatar, { size: 512, transparent: true });
   disposeAvatar(avatar);
 }
