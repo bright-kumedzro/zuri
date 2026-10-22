@@ -45,6 +45,8 @@ export interface AvatarParams {
     /** Cheek fullness. */
     cheeks: number;
     cheekbones: number;
+    /** 0 = smooth forehead, 1 = a pronounced brow ridge. */
+    browRidge: number;
     ears: number;
   };
   /** `y` moves the eyes up (+) or down; `openness` > 0 is rounder, < 0 more hooded. */
@@ -211,7 +213,7 @@ function validOptions(o: AvatarOptions): AvatarOptions {
 /** Face-shape archetypes. Each person varies around one of these. */
 export const FACE_SHAPE_LIST = ["oval", "round", "square", "heart", "long", "diamond"] as const satisfies readonly FaceShape[];
 
-const FACE_SHAPES: Record<FaceShape, Omit<AvatarParams["face"], "shape" | "ears">> = {
+const FACE_SHAPES: Record<FaceShape, Omit<AvatarParams["face"], "shape" | "ears" | "browRidge">> = {
   oval: { width: 0.95, crown: 1.0, height: 1.05, forehead: 1.0, jaw: 0.92, jawSquare: 0.15, chin: 1.05, chinPoint: 0.45, cheeks: 0.95, cheekbones: 1.0 },
   round: { width: 1.13, crown: 1.03, height: 0.9, forehead: 0.92, jaw: 1.12, jawSquare: 0.05, chin: 0.8, chinPoint: 0.05, cheeks: 1.3, cheekbones: 0.92 },
   square: { width: 1.07, crown: 1.0, height: 0.99, forehead: 0.98, jaw: 1.28, jawSquare: 1.0, chin: 0.92, chinPoint: 0.0, cheeks: 0.9, cheekbones: 1.02 },
@@ -228,8 +230,8 @@ function anatomy(p: AvatarParams, rng: Random, faceShape?: FaceShape) {
   const fem = p.presentation === "feminine";
   const drawn = rng.weighted<FaceShape>(
     fem
-      ? [["oval", 3], ["heart", 2.5], ["round", 2], ["diamond", 1.5], ["long", 1.5], ["square", 1]]
-      : [["oval", 3], ["square", 3], ["long", 2], ["diamond", 1.5], ["round", 1.5], ["heart", 1]],
+      ? [["oval", 3], ["heart", 3], ["round", 2.5], ["diamond", 1.5], ["long", 0.8], ["square", 0.4]]
+      : [["square", 3.5], ["oval", 3], ["long", 2], ["diamond", 1.5], ["round", 1], ["heart", 0.4]],
   );
   const shape = faceShape ?? drawn;
   const base = FACE_SHAPES[shape];
@@ -246,18 +248,34 @@ function anatomy(p: AvatarParams, rng: Random, faceShape?: FaceShape) {
     chinPoint: g(base.chinPoint, 0.12, 0, 1),
     cheeks: g(base.cheeks, 0.07, 0.75, 1.35),
     cheekbones: g(base.cheekbones, 0.07, 0.8, 1.5),
+    browRidge: g(fem ? 0.05 : 0.75, 0.15, 0, 1),
     ears: p.face.ears,
   };
+  // Sexual dimorphism on top of the shape, as avatar systems draw it (Bitmoji, Memoji):
+  // masculine = wider, squarer jaw, broad chin, brow ridge, heavier straight brows, smaller eyes, bigger nose, thinner lips;
+  // feminine = narrower, rounder jaw, softer chin, fuller cheeks, larger open eyes, arched brows, smaller nose, fuller lips.
+  const f = p.face, m = fem ? -1 : 1;
+  f.jaw = clamp(f.jaw * (fem ? 0.92 : 1.1), 0.62, 1.42);
+  f.jawSquare = clamp(f.jawSquare + 0.25 * m, 0, 1);
+  // Feminine chins are small but rounded rather than V-shaped.
+  f.chinPoint = clamp(fem ? f.chinPoint * 0.7 + 0.05 : f.chinPoint - 0.18, 0, 1);
+  f.chin = clamp(f.chin + 0.07 * m, 0.7, 1.45);
+  f.height = clamp(f.height + 0.03 * m, 0.84, 1.28);
+  f.cheeks = clamp(f.cheeks - 0.09 * m, 0.72, 1.4);
+  f.cheekbones = clamp(f.cheekbones - 0.06 * m, 0.78, 1.52);
+  p.brows.thickness = clamp(p.brows.thickness * (fem ? 0.78 : 1.3), 0.5, 1.9);
+  p.brows.arch = clamp(p.brows.arch * (fem ? 1.3 : 0.55), 0.2, 2);
   // Stretch the existing variation in eyes, nose and mouth, and add placement.
   const widen = (v: number, mean: number, k: number, lo: number, hi: number) => clamp(mean + (v - mean) * k, lo, hi);
-  p.eyes.size = widen(p.eyes.size, fem ? 1.04 : 0.98, 1.8, 0.82, 1.24);
+  p.eyes.size = widen(p.eyes.size, fem ? 1.04 : 0.98, 1.8, 0.82, 1.24) * (fem ? 1.08 : 0.93);
   p.eyes.spacing = widen(p.eyes.spacing, 1, 1.7, 0.86, 1.15);
   p.eyes.y = g(0, 0.025, -0.06, 0.06);
-  p.eyes.openness = g(0, 0.4, -1, 1);
-  p.nose.size = widen(p.nose.size, 1, 1.3, 0.72, 1.4);
-  p.nose.width = widen(p.nose.width, 1, 1.3, 0.75, 1.45);
+  p.eyes.openness = clamp(g(0, 0.35, -1, 1) + (fem ? 0.3 : -0.25), -1, 1);
+  p.nose.size = widen(p.nose.size, 1, 1.3, 0.72, 1.4) * (fem ? 0.87 : 1.12);
+  p.nose.width = widen(p.nose.width, 1, 1.3, 0.75, 1.45) * (fem ? 0.9 : 1.08);
   p.nose.length = g(1, 0.09, 0.8, 1.25);
-  p.nose.bridge = g(fem ? 0.95 : 1.05, 0.15, 0.6, 1.4);
+  p.nose.bridge = g(fem ? 0.88 : 1.15, 0.15, 0.6, 1.5);
+  p.mouth.lips = clamp(p.mouth.lips * (fem ? 1.25 : 0.78), 0.6, 1.7);
   p.mouth.width = widen(p.mouth.width, 1, 1.4, 0.8, 1.25);
 }
 
@@ -312,7 +330,8 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
   let clothB = style.pick(CLOTH_COLORS);
   if (clothB === clothA) clothB = CLOTH_COLORS[(CLOTH_COLORS.indexOf(clothA) + 3) % CLOTH_COLORS.length]!;
 
-  const lipBase = blend(skin, fem ? "#b5485a" : "#8e4a48", fem ? 0.45 : 0.3);
+  // Feminine lips carry more color; masculine lips stay close to the skin.
+  const lipBase = blend(skin, fem ? "#c0405a" : "#8e4a48", fem ? 0.58 : 0.22);
 
   const params: AvatarParams = {
     seed,
@@ -322,7 +341,7 @@ export function generateAvatar(seed: string, rawOptions: AvatarOptions = {}): Av
     skinDepth,
     face: {
       shape: "oval",
-      crown: 1, height: 1, forehead: 1, jawSquare: 0, chinPoint: 0, cheekbones: 1,
+      crown: 1, height: 1, forehead: 1, jawSquare: 0, chinPoint: 0, cheekbones: 1, browRidge: 0,
       width: clamp(shape.gaussian(1, 0.035), 0.92, 1.08),
       jaw: clamp(shape.gaussian(fem ? 0.95 : 1.06, 0.05), 0.82, 1.18),
       chin: clamp(shape.gaussian(1, 0.08), 0.8, 1.2),

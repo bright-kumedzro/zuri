@@ -26,6 +26,21 @@ const ctx = sheet.getContext("2d")!;
 document.body.append(sheet);
 
 const factory = new AvatarFactory();
+
+/** POST to the local receiver one file at a time, retrying, so bursts of exports don't drop files. */
+let queue = Promise.resolve();
+const upload = (name: string, body: string) =>
+  (queue = queue.then(async () => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await fetch(`http://localhost:5199/?name=${encodeURIComponent(name)}`, { method: "POST", body });
+        return;
+      } catch {
+        await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+      }
+    }
+    console.warn(`lab: could not upload ${name}`);
+  }));
 const t0 = performance.now();
 await Promise.all(
   seeds.map(async (seed, i) => {
@@ -43,7 +58,7 @@ await Promise.all(
       const dir = q.get("export");
       if (dir) {
         const webp = snapshotAvatar(avatar, { size, framing, type: "image/webp", quality: 0.86, transparent: q.has("transparent") });
-        await fetch(`http://localhost:5199/?name=${encodeURIComponent(`${dir}/${seed}.webp`)}`, { method: "POST", body: webp });
+        await upload(`${dir}/${seed}.webp`, webp);
       }
       disposeAvatar(avatar);
     }
@@ -62,4 +77,4 @@ const info = { total: Math.round(performance.now() - t0) };
 document.title = "done";
 (window as unknown as { labInfo: unknown }).labInfo = info;
 const post = q.get("post");
-if (post) await fetch(`http://localhost:5199/?name=${encodeURIComponent(post)}`, { method: "POST", body: sheet.toDataURL("image/jpeg", 0.88) });
+if (post) await upload(post, sheet.toDataURL("image/jpeg", 0.88));

@@ -76,7 +76,9 @@ export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
   const ex = (toon ? 0.36 : 0.335) * p.eyes.spacing * fw;
   const ey = (toon ? 0.0 : 0.02) + p.eyes.y;
   const ez = surfaceZ(face, ex, ey) - 0.62 * r;
-  const browY = ey + r + 0.13;
+  const browY = ey + r + 0.13 - 0.02 * p.face.browRidge;
+  // The brow ridge sits on the face above the eyes; measure where.
+  const ridgeZ = surfaceZ(face, 0.3 * fw, browY + 0.02) - 0.09;
   const nl = p.nose.length;
   const my = toY(-0.53 - 0.06 * (nl - 1));
   const mz = surfaceZ(face, 0, my);
@@ -99,9 +101,12 @@ export function buildRig(p: AvatarParams, style: AvatarStyle = "soft"): Rig {
   const neckR = (masc ? 0.4 : 0.35) * (toon ? 0.86 : 1);
   const shoulderW = (masc ? 0.98 : 0.84) * (toon ? 0.9 : 1);
 
+  const ridge = p.face.browRidge;
   const head: SDF = (x, y, z) => {
     let d = face(x, y, z);
     const ax = Math.abs(x);
+    // Brow ridge: a soft shelf above the eyes (mostly masculine faces).
+    if (ridge > 0.1 && z > 0.2 && Math.abs(y - browY) < 0.3) d = smin(d, ellipsoid(x, y - browY - 0.03, z - ridgeZ, 0.58 * fw, 0.075, 0.13) + 0.06 * (1 - ridge), 0.09);
     // Nose: bridge-to-tip cone plus nostril wings.
     if (z > 0.3 && y < ey + 0.25 && y > tipY - 0.3 && ax < 0.35) {
       let n = capsule(x, y, z, 0, ey, nzTop, 0, tipY + 0.03 * (ns - 1), nzTip - 0.05, 0.045, 0.085 * nw * ns);

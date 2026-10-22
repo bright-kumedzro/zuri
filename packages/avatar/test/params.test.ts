@@ -83,3 +83,18 @@ test("face shapes: varied by seed, settable, and actually different geometry", a
   // A round face is clearly wider at the mouth than a long one.
   assert.ok(width("round") > width("long") * 1.12, `${width("round")} vs ${width("long")}`);
 });
+
+test("masculine and feminine faces differ the way avatar systems draw them", () => {
+  const avg = (presentation: "feminine" | "masculine", f: (p: ReturnType<typeof generateAvatar>) => number) => {
+    let sum = 0;
+    for (let i = 0; i < 200; i++) sum += f(generateAvatar(`dimorph-${i}`, { presentation }));
+    return sum / 200;
+  };
+  const ratio = (f: (p: ReturnType<typeof generateAvatar>) => number) => avg("masculine", f) / avg("feminine", f);
+  assert.ok(ratio((p) => p.face.jaw) > 1.15, "wider jaw");
+  assert.ok(avg("masculine", (p) => p.face.browRidge) > 0.5 && avg("feminine", (p) => p.face.browRidge) < 0.2, "brow ridge");
+  assert.ok(ratio((p) => p.brows.thickness) > 1.4, "heavier brows");
+  assert.ok(ratio((p) => p.eyes.size) < 0.92, "smaller eyes");
+  assert.ok(ratio((p) => p.nose.size) > 1.2, "bigger nose");
+  assert.ok(ratio((p) => p.mouth.lips) < 0.75, "thinner lips");
+});

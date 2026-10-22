@@ -135,10 +135,11 @@ function buildEye(p: AvatarParams, rig: Rig, side: 1 | -1, eyeMat: THREE.Materia
   }
   if (p.eyes.lashes) {
     const end = pts[pts.length - 1]!;
-    pts.push(end.clone().add(new THREE.Vector3(r * 0.22, r * 0.16, -r * 0.08)));
+    // A small winged flick at the outer corner.
+    pts.push(end.clone().add(new THREE.Vector3(r * 0.3, r * 0.2, -r * 0.08)));
   }
   const lash = new THREE.Mesh(
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, p.eyes.lashes ? r * 0.085 : r * 0.05, 8, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, p.eyes.lashes ? r * 0.1 : r * 0.045, 8, false),
     new THREE.MeshStandardMaterial({ color: 0x15100e, roughness: 0.5 }),
   );
   upper.add(lash);
