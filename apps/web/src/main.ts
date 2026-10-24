@@ -539,28 +539,24 @@ const SNIPPETS: Record<string, (s: string) => string> = {
   stage.show(${k("await new")} AvatarFactory().create(${str(s)}));
   stage.render();
 &lt;/script&gt;`,
-  react: (s) => `${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
+  react: (s) => `${k("import")} { Avatar } ${k("from")} ${str("@brightkumedzro/zuri-react")};
 
-${k("const")} zuri = ${k("new")} AvatarFactory();
-
-${k("export function")} Avatar({ seed = ${str(s)}, size = 48 }) {
-  ${k("const")} [src, setSrc] = useState&lt;string&gt;();
-  useEffect(() =&gt; {
-    zuri.create(seed).then((a) =&gt; setSrc(snapshotAvatar(a, { size: size * 2 })));
-  }, [seed]);
-  ${k("return")} &lt;img src={src} width={size} height={size} alt="" /&gt;;
+${c("// works in Next.js server components too")}
+${k("export function")} Profile() {
+  ${k("return")} &lt;Avatar seed=${str(s)} size={48} /&gt;;
 }`,
   vue: (s) => `&lt;script setup&gt;
-${k("import")} { ref, watchEffect } ${k("from")} ${str("vue")};
-${k("import")} { AvatarFactory, snapshotAvatar } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
-
-${k("const")} props = defineProps({ seed: { default: ${str(s)} } });
-${k("const")} src = ref();
-${k("const")} zuri = ${k("new")} AvatarFactory();
-watchEffect(${k("async")} () =&gt; (src.value = snapshotAvatar(${k("await")} zuri.create(props.seed))));
+${k("import")} { Avatar } ${k("from")} ${str("@brightkumedzro/zuri-vue")};
 &lt;/script&gt;
 
-&lt;template&gt;&lt;img :src="src" width="48" height="48" alt="" /&gt;&lt;/template&gt;`,
+&lt;template&gt;
+  &lt;Avatar seed=${str(s)} :size=${str("48")} /&gt;
+&lt;/template&gt;`,
+  svelte: (s) => `&lt;script&gt;
+  ${k("import")} { Avatar } ${k("from")} ${str("@brightkumedzro/zuri-svelte")};
+&lt;/script&gt;
+
+&lt;Avatar seed=${str(s)} size={48} /&gt;`,
   "three.js": (s) => `${k("import")} { AvatarFactory } ${k("from")} ${str("@brightkumedzro/zuri-avatar")};
 
 ${c("// meshed on a worker pool, returns a THREE.Group")}
@@ -578,8 +574,10 @@ let tab = "html";
 const tabs = $("#code-tabs");
 const code = $("#code");
 const escape = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
+const INSTALL: Record<string, string> = { react: "zuri-react", vue: "zuri-vue", svelte: "zuri-svelte" };
 function renderCode() {
   code.innerHTML = SNIPPETS[tab]!(escape(heroSeed));
+  $("#play-install").textContent = `npm i @brightkumedzro/${INSTALL[tab] ?? "zuri-avatar"} three`;
 }
 for (const name of Object.keys(SNIPPETS)) {
   const b = document.createElement("button");

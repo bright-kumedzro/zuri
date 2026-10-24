@@ -52,11 +52,24 @@ seed ─► params (skin, face shape, eyes, hair, outfit, expression…) ─► 
 - **Inclusive by design.** There are 14 skin tones. Hair texture is correlated with skin tone but every
   combination stays possible: coils, locs, braids, cornrows, puffs, afro, high-top and headwraps.
 
+## Frameworks
+
+```tsx
+import { Avatar } from "@brightkumedzro/zuri-react";    // or zuri-vue, zuri-svelte
+
+<Avatar seed={user.id} look="toon" size={96} />
+```
+
+The components work with server rendering (flat avatars render on the server; 3D fills in in the browser) and were
+tested in fresh Next.js 16, Nuxt 4 and SvelteKit 3 apps. Everything else (Angular, plain JS) uses the `avatarImage` and
+`mountAvatar` helpers from the main package, tested with webpack 5.
+
 ## Layout
 
 | Path | What |
 |---|---|
 | `packages/avatar` | The stylized avatar engine: params, SDF parts, mesher, worker pool, stage (lighting/camera), snapshots |
+| `packages/react`, `packages/vue`, `packages/svelte` | `<Avatar seed="…" />` components (SSR-safe), published as `@brightkumedzro/zuri-react`, `-vue` and `-svelte` |
 | `apps/web` | Landing page (hero, wall, styles, builder, playground, pricing, FAQ) at `/`, docs at `/docs.html`, and a dev contact sheet at `/lab.html` (`&style=flat` for 2D) |
 | `packages/core`, `packages/three`, `apps/viewer` | v0 realistic engine built on MakeHuman CC0 data (see below) |
 

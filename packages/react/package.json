@@ -1,0 +1,69 @@
+{
+  "name": "@brightkumedzro/zuri-react",
+  "version": "0.1.0",
+  "description": "<Avatar seed=\"…\" /> for React: deterministic 3D, toon and flat avatars from any string.",
+  "license": "MIT",
+  "author": "Bright Kumedzro",
+  "homepage": "https://zuri-olive.vercel.app/docs#react",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bright-kumedzro/zuri.git",
+    "directory": "packages/react"
+  },
+  "keywords": [
+    "avatar",
+    "react",
+    "nextjs",
+    "3d",
+    "svg",
+    "profile-picture",
+    "zuri"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "prepack": "node build.mjs"
+  },
+  "dependencies": {
+    "@brightkumedzro/zuri-avatar": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "three": ">=0.170.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "three": "^0.180.0",
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.0",
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "@brightkumedzro/zuri-svelte",
+  "version": "0.1.0",
+  "description": "<Avatar seed=\"…\" /> for Svelte and SvelteKit: deterministic 3D, toon and flat avatars from any string.",
+  "license": "MIT",
+  "author": "Bright Kumedzro",
+  "homepage": "https://zuri-olive.vercel.app/docs#svelte",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bright-kumedzro/zuri.git",
+    "directory": "packages/svelte"
+  },
+  "keywords": [
+    "avatar",
+    "svelte",
+    "sveltekit",
+    "3d",
+    "svg",
+    "profile-picture",
+    "zuri"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.svelte"
+  ],
+  "svelte": "./src/lib/index.js",
+  "exports": {
+    ".": {
+      "svelte": "./src/lib/index.js",
+      "default": "./src/lib/index.js"
+    }
+  },
+  "publishConfig": {
+    "svelte": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "svelte-package -i src/lib -o dist",
+    "prepack": "svelte-package -i src/lib -o dist"
+  },
+  "dependencies": {
+    "@brightkumedzro/zuri-avatar": "workspace:^"
+  },
+  "peerDependencies": {
+    "svelte": ">=4",
+    "three": ">=0.170.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@sveltejs/package": "^2.3.0",
+    "svelte": "^5.0.0",
+    "three": "^0.180.0",
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.0"
+  }
+}

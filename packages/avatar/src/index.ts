@@ -16,6 +16,7 @@ export { meshAvatar, type AvatarMeshes } from "./mesh.ts";
 export type { AvatarStyle } from "./head.ts";
 export { assembleAvatar } from "./build.ts";
 export { createFlatAvatar, flatAvatarDataURL, flatAvatarSVG, rasterizeSVG, type FlatOptions } from "./flat.ts";
+export { avatarImage, mountAvatar, sharedFactory, type AvatarImageOptions, type MountedAvatar, type MountOptions } from "./dom.ts";
 
 export function createAvatar(seed: string, options: AvatarOptions & BuildOptions = {}): Avatar {
   return buildAvatar(generateAvatar(seed, options), options);

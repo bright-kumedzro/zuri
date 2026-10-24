@@ -6,3 +6,4 @@ assets/build
 .vite
 .env*
 .vercel
+.svelte-kit

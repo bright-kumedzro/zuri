@@ -44,7 +44,7 @@
           <a href="#wardrobe">Wardrobe</a>
           <a href="#glb">Exporting .glb</a>
           <a href="#flat">Flat 2D avatars</a>
-          <a href="#frameworks">React, Vue and others</a>
+          <a href="#frameworks">React, Vue, Svelte, Angular</a>
           <a href="#performance">Performance</a>
           <p>Reference</p>
           <a href="#api-create">createAvatar</a>
@@ -56,6 +56,7 @@
           <a href="#api-options">AvatarOptions</a>
           <a href="#api-avatar">The Avatar object</a>
           <a href="#api-flat">createFlatAvatar</a>
+          <a href="#api-helpers">avatarImage, mountAvatar</a>
           <a href="#api-constants">Constants</a>
           <p>More</p>
           <a href="#determinism">Determinism</a>
@@ -298,50 +299,70 @@ app.get(<span class="s">"/avatars/:id.svg"</span>, (req, res) =&gt; {
           </section>
 
           <section id="frameworks">
-            <h3>React, Vue and others</h3>
+            <h3>React, Vue, Svelte and others</h3>
             <p>
-              Zuri has no framework dependency. Create one <code>AvatarFactory</code> for the whole app and use images
-              for lists and profile pictures. Use live 3D only for the one or two avatars that need it.
+              There are ready-made <code>&lt;Avatar&gt;</code> components for React, Vue and Svelte. They take the same props,
+              work with server rendering, and share one worker pool per page. Flat avatars render on the server; 3D and toon
+              avatars show a placeholder in the avatar's background color and fill in in the browser, so hydration always
+              matches. Each one was tested in a fresh app: Next.js 16 (React 19), Nuxt 4 and SvelteKit 3 (Svelte 5).
             </p>
-            <p class="label">React</p>
-            <pre><code><span class="k">import</span> { useEffect, useState } <span class="k">from</span> <span class="s">"react"</span>;
-<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-avatar"</span>;
+            <table>
+              <tr><th>Prop</th><th>Default</th><th>Description</th></tr>
+              <tr><td><code>seed</code></td><td>required</td><td>Any string; the same seed is always the same face.</td></tr>
+              <tr><td><code>size</code></td><td><code>64</code></td><td>Displayed size in CSS pixels. Images render at 2x for sharp screens.</td></tr>
+              <tr><td><code>look</code></td><td><code>"3d"</code></td><td><code>"3d"</code>, <code>"toon"</code> or <code>"flat"</code>.</td></tr>
+              <tr><td><code>live</code></td><td><code>false</code></td><td>An animated 3D canvas (drag to rotate) instead of an image.</td></tr>
+              <tr><td><code>shape</code></td><td><code>"circle"</code></td><td><code>"circle"</code>, <code>"rounded"</code> or <code>"square"</code>.</td></tr>
+              <tr><td><code>transparent</code>, <code>alt</code></td><td></td><td>No background color; alt text.</td></tr>
+              <tr><td>Any <a href="#api-options">trait option</a></td><td></td><td><code>hair</code>, <code>skin</code>, <code>outfit</code>, <code>faceShape</code>, <code>presentation</code>, <code>accessory</code>…</td></tr>
+            </table>
 
-<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
+            <p class="label" id="react">React and Next.js</p>
+            <pre><code>npm i @brightkumedzro/zuri-react three</code></pre>
+            <pre><code><span class="k">import</span> { Avatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-react"</span>;
 
-<span class="k">export function</span> Avatar({ seed, size = <span class="s">48</span> }) {
-  <span class="k">const</span> [src, setSrc] = useState();
-  useEffect(() =&gt; {
-    <span class="k">let</span> live = <span class="k">true</span>;
-    zuri.create(seed, { quality: <span class="s">0.75</span> }).then((a) =&gt; {
-      <span class="k">if</span> (live) setSrc(snapshotAvatar(a, { size: size * <span class="s">2</span> }));
-      disposeAvatar(a);
-    });
-    <span class="k">return</span> () =&gt; { live = <span class="k">false</span>; };
-  }, [seed, size]);
-  <span class="k">return</span> &lt;img src={src} width={size} height={size} alt="" /&gt;;
-}</code></pre>
-            <p class="label">Vue</p>
+&lt;Avatar seed={user.id} /&gt;
+&lt;Avatar seed={user.id} look=<span class="s">"toon"</span> size={96} /&gt;
+&lt;Avatar seed={user.id} look=<span class="s">"flat"</span> /&gt;            <span class="c">// rendered on the server too</span>
+&lt;Avatar seed={user.id} live size={200} hair=<span class="s">"locs"</span> outfit=<span class="s">"kente"</span> /&gt;</code></pre>
+            <p>The component is marked <code>"use client"</code>, so you can use it straight from Next.js server components.</p>
+
+            <p class="label" id="vue">Vue and Nuxt</p>
+            <pre><code>npm i @brightkumedzro/zuri-vue three</code></pre>
             <pre><code>&lt;script setup&gt;
-<span class="k">import</span> { ref, watchEffect } <span class="k">from</span> <span class="s">"vue"</span>;
-<span class="k">import</span> { AvatarFactory, disposeAvatar, snapshotAvatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-avatar"</span>;
-
-<span class="k">const</span> props = defineProps({ seed: String, size: { type: Number, default: <span class="s">48</span> } });
-<span class="k">const</span> src = ref();
-<span class="k">const</span> zuri = <span class="k">new</span> AvatarFactory();
-watchEffect(<span class="k">async</span> () =&gt; {
-  <span class="k">const</span> a = <span class="k">await</span> zuri.create(props.seed, { quality: <span class="s">0.75</span> });
-  src.value = snapshotAvatar(a, { size: props.size * <span class="s">2</span> });
-  disposeAvatar(a);
-});
+<span class="k">import</span> { Avatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-vue"</span>;
 &lt;/script&gt;
 
-&lt;template&gt;&lt;img :src="src" :width="size" :height="size" alt="" /&gt;&lt;/template&gt;</code></pre>
+&lt;template&gt;
+  &lt;Avatar :seed=<span class="s">"user.id"</span> look=<span class="s">"toon"</span> :size=<span class="s">"96"</span> /&gt;
+&lt;/template&gt;</code></pre>
+
+            <p class="label" id="svelte">Svelte and SvelteKit</p>
+            <pre><code>npm i @brightkumedzro/zuri-svelte three</code></pre>
+            <pre><code>&lt;script&gt;
+  <span class="k">import</span> { Avatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-svelte"</span>;
+&lt;/script&gt;
+
+&lt;Avatar seed={user.id} look=<span class="s">"toon"</span> size={96} /&gt;</code></pre>
+
+            <p class="label" id="vanilla">Angular, plain JavaScript and everything else</p>
             <p>
-              Svelte, Angular, Solid and plain JavaScript follow the same pattern: create the avatar, take a snapshot,
-              put it in an <code>&lt;img&gt;</code>. With server-side rendering (Next.js, Nuxt, SvelteKit), only call
-              Zuri in the browser, for example inside <code>useEffect</code> or <code>onMount</code>, because it needs
-              WebGL and Web Workers.
+              Without a component, use the two browser helpers in the main package. They share the same worker pool and cache.
+              This is how the components work inside, and it was tested in a plain webpack 5 app.
+            </p>
+            <pre><code><span class="k">import</span> { avatarImage, mountAvatar } <span class="k">from</span> <span class="s">"@brightkumedzro/zuri-avatar"</span>;
+
+<span class="c">// An image (cached, so repeated seeds are free)</span>
+img.src = <span class="k">await</span> avatarImage(user.id, { size: 128, style: <span class="s">"toon"</span> });
+
+<span class="c">// Live 3D in a canvas: call update() to change it, dispose() when you remove it</span>
+<span class="k">const</span> live = mountAvatar(canvas, user.id, { hair: <span class="s">"afro"</span> });
+live.update(<span class="s">"someone-else"</span>);
+live.dispose();</code></pre>
+            <p>
+              In Angular, call <code>mountAvatar</code> in <code>ngAfterViewInit</code> with your canvas
+              (<code>@ViewChild</code>) and <code>dispose()</code> in <code>ngOnDestroy</code>. Angular and Solid have no
+              ready-made component yet, and we haven't tested them, but the helpers are plain JavaScript.
             </p>
           </section>
 
@@ -492,6 +513,18 @@ generateAvatar(<span class="s">"ada"</span>).hair.style;              <span clas
               <tr><td><code>flatAvatarDataURL(svg)</code></td><td>Turn the SVG into a URL for <code>&lt;img src&gt;</code> or CSS.</td></tr>
               <tr><td><code>rasterizeSVG(svg, options?)</code></td><td>Browser only. Returns a PNG, WebP or JPEG data URL. Takes <code>size</code>, <code>type</code> and <code>quality</code>.</td></tr>
             </table>
+          </section>
+
+          <section id="api-helpers" class="api">
+            <h3>avatarImage, mountAvatar</h3>
+            <pre class="sig"><code>avatarImage(seed: string, options?: AvatarOptions &amp; { size?, style?, framing?, transparent?, type? }): Promise&lt;string&gt;
+mountAvatar(canvas: HTMLCanvasElement, seed: string, options?: AvatarOptions &amp; { style?, framing?, transparent?, animate?, interactive? }): { update, dispose }</code></pre>
+            <p>
+              Browser helpers. <code>avatarImage</code> renders a 3D or toon avatar to a data URL on a shared worker pool and
+              caches it. <code>mountAvatar</code> shows a live avatar in a canvas, sized to the canvas, with idle animation
+              (off for users who prefer reduced motion) and drag to rotate. Both are safe to import during server rendering;
+              call them in the browser.
+            </p>
           </section>
 
           <section id="api-constants" class="api">
